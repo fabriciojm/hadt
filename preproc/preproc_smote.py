@@ -113,6 +113,11 @@ if __name__ == "__main__":
         print("Usage: python preproc_smote.py filename n_samples ")
         sys.exit(1)
 
+    print('''
+          This function takes as an input a .csv file of preprocessed
+          heartbeats and uses SMOTE to augment the data, use nsamples to limit
+          the main (normal) class
+          ''')
     filename = sys.argv[1]
     n_samples = int(sys.argv[2])
     preproc_smote(filename, n_samples=n_samples)
