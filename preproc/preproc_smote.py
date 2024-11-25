@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 import pandas as pd, numpy as np, seaborn as sns
 import matplotlib.pyplot as plt
 from tslearn.preprocessing import TimeSeriesScalerMinMax
