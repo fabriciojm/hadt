@@ -2,4 +2,4 @@ pandas
 matplotlib
 numpy
 tensorflow
-sklearn
+scikit-learn
