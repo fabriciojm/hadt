@@ -35,7 +35,7 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False):
 
     # Dropping redundant index
     # np.all(df.index == df['Unnamed: 0'])
-    df.drop(columns=['Unnamed: 0'], inplace=True)
+    df = df.drop(columns=['Unnamed: 0'])
 
     # Original encoding of the classes
     enc = {'F': 0, 'N': 1, 'Q': 2, 'S': 3, 'V': 4}
