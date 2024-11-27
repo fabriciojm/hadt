@@ -9,7 +9,7 @@ from tslearn.utils import to_time_series_dataset
 from imblearn.over_sampling import SMOTE
 
 def apply_smote(X, y):
-
+    # This function is not working
     smote = SMOTE(random_state=42)
     X_resampled, y_resampled = smote.fit_resample(X_reshaped, y)
 
@@ -34,7 +34,6 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False):
     df = pd.read_csv(filename)
 
     # Dropping redundant index
-    # np.all(df.index == df['Unnamed: 0'])
     df.drop(columns=['Unnamed: 0'], inplace=True)
 
     # Original encoding of the classes
@@ -88,6 +87,7 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False):
         X_resampled = X_reshaped[selected_indices]
         y_resampled = y[selected_indices]
 
+
         # should be refactored
         # Convert back to dataframe
         # X = pd.DataFrame(X, columns=df.drop(columns='target').columns)
@@ -106,7 +106,8 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False):
     out_filename += f'_{n_classes_out}classes'
     out_filename += '.csv'
     print(f'Saving to {out_filename}')
-    pd.concat([X_resampled, y_resampled], axis=1).to_csv(out_filename)
+    res = pd.concat([X_resampled, y_resampled], axis=1)
+    res.to_csv(out_filename, index=False)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Preprocess the data, perform class balance using SMOTE')
@@ -130,7 +131,3 @@ if __name__ == "__main__":
             drop_classes=args.drop_classes,
             binary=args.binary,
             smote=args.smote)
-
-    # filename = sys.argv[1]
-    # n_samples = int(sys.argv[2])
-    # preproc_smote(filename, n_samples=n_samples)
