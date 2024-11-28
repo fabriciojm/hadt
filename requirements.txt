@@ -3,3 +3,4 @@ matplotlib
 numpy
 tensorflow
 scikit-learn
+fastdtw
