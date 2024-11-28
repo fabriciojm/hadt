@@ -44,7 +44,7 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False, 
     df = df[~df['target'].isin(enc_drop_classes)]
 
     # number of out classes
-    n_classes_out = df.target.nunique()
+    # n_classes_out = df.target.nunique()
 
     # Have 0 as the positive normal class
     replace = {1: 0, 0: 1}
@@ -71,7 +71,7 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False, 
     else:
         # if n_samples is -1, undersampling to size of least common class
         if n_samples == -1:
-            n_samples = df.target.value_counts().sort_values(ascending=False).iloc[1]
+            n_samples = df.target.value_counts().sort_values(ascending=False).iloc[-1]
         # Get indices for each class
         class_indices = {}
         for class_label in np.unique(y):
@@ -104,7 +104,7 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False, 
         out_filename += '_binary'
     if smote:
         out_filename += '_smote'
-    out_filename += f'_{n_classes_out}classes'
+    out_filename += f'_drop{"".join(drop_classes)}'
     # out_filename += '.csv'
     print(f'Saving to {out_filename}.csv')
     res = pd.concat([X_resampled, y_resampled], axis=1)
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     if args.drop_classes == []:
         print('Preprocess keeping all classes')
     else:
-        print(f'Preprocess dropping {args.drop_classes} classes')
+        print(f'Preprocess dropping {args.drop_classes} class(es)')
 
     preproc(args.filename,
             n_samples=args.n_samples,
