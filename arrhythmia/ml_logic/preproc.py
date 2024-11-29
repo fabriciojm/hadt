@@ -111,8 +111,8 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False,
 
         # should be refactored
         # Convert back to dataframe
-        X = pd.DataFrame(X, columns=df.drop(columns='target').columns)
-        y = pd.Series(y, name='target')
+        # X = pd.DataFrame(X, columns=df.drop(columns='target').columns)
+        # y = pd.Series(y, name='target')
 
     print('Resulting features shape', X.shape)
     print('Resulting target shape', y.shape)
@@ -131,53 +131,60 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False,
     X_tr = scaler.fit_transform(X_tr)
     X_te = scaler.transform(X_te)
 
+    X_tr = pd.DataFrame(X_tr.squeeze(), columns=df.drop(columns='target').columns)
+    y_tr = pd.Series(y_tr, name='target')
+
+    X_te = pd.DataFrame(X_te.squeeze(), columns=df.drop(columns='target').columns)
+    y_te = pd.Series(y_te, name='target')
+
     return X_tr, X_te, y_tr, y_te
 
     # if split == True:
         # split_data(res, test_size_test=0.2, test_size_val=0.2, out_filename=out_filename)
 
-def prepare_filename(filename, output_dir, drop_classes):
-    os.path.basename(filename)[:-4]
+def prepare_filename(args):
+    out_filename = os.path.basename(args.filename)[:-4]
     out_filename = out_filename.replace('raw', 'preproc')
     if args.binary:
         out_filename += '_binary'
     if args.smote:
         out_filename += '_smote'
-    out_filename += f'_drop{"".join(drop_classes)}'
-    out_filename = os.path.join(output_dir, out_filename)
+    out_filename += f"_{args.scaler_name}"
+    out_filename += f'_drop{"".join(args.drop_classes)}'
+    out_filename = os.path.join(args.output_dir, out_filename)
     return out_filename
 
 
-def split_data(df, test_size_test=0.2, test_size_val=0.2, out_filename="split-data"):
-    X = df.drop(columns="target")
-    y = df.target
-    # train_test split
-    X_train_temp, X_test, y_train_temp, y_test = train_test_split(
-        X, y,
-        test_size=test_size_test,
-        random_state=42
-    )
-    # train_validation_test split
-    X_train, X_val, y_train, y_val = train_test_split(
-        X_train_temp, y_train_temp,
-        test_size=test_size_val,
-        random_state=42
-    )
+# def split_data(df, test_size_test=0.2, test_size_val=0.2, out_filename="split-data"):
+#     X = df.drop(columns="target")
+#     y = df.target
+#     # train_test split
+#     X_train_temp, X_test, y_train_temp, y_test = train_test_split(
+#         X, y,
+#         test_size=test_size_test,
+#         random_state=42
+#     )
+#     # train_validation_test split
+#     X_train, X_val, y_train, y_val = train_test_split(
+#         X_train_temp, y_train_temp,
+#         test_size=test_size_val,
+#         random_state=42
+#     )
 
 
-    # convert results in csv files
-    ## train
-    res_train = pd.concat([X_train, y_train], axis=1)
-    print(f"Saving to {out_filename}_train.csv")
-    res_train.to_csv(f"{out_filename}_train.csv", index=False)
-    ## test
-    res_test = pd.concat([X_test, y_test], axis=1)
-    print(f"Saving to {out_filename}_test.csv")
-    res_test.to_csv(f"{out_filename}_test.csv", index=False)
-    ## val
-    res_val = pd.concat([X_val, y_val], axis=1)
-    print(f"Saving to {out_filename}_val.csv")
-    res_val.to_csv(f"{out_filename}_val.csv", index=False)
+#     # convert results in csv files
+#     ## train
+#     res_train = pd.concat([X_train, y_train], axis=1)
+#     print(f"Saving to {out_filename}_train.csv")
+#     res_train.to_csv(f"{out_filename}_train.csv", index=False)
+#     ## test
+#     res_test = pd.concat([X_test, y_test], axis=1)
+#     print(f"Saving to {out_filename}_test.csv")
+#     res_test.to_csv(f"{out_filename}_test.csv", index=False)
+#     ## val
+#     res_val = pd.concat([X_val, y_val], axis=1)
+#     print(f"Saving to {out_filename}_val.csv")
+#     res_val.to_csv(f"{out_filename}_val.csv", index=False)
 
 
 if __name__ == "__main__":
@@ -191,7 +198,6 @@ if __name__ == "__main__":
     parser.add_argument("--output_dir", type=str, default=os.getcwd(), help="Path to save the results")
     parser.add_argument("--scaler_name", type=str, default="Standard", help="Scaler to be used (default Standard)")
 
-    # parser.add_argument('--classes', type=list, help='Number of classes to keep', default=-1)
     args = parser.parse_args()
 
     if args.drop_classes == []:
@@ -201,6 +207,9 @@ if __name__ == "__main__":
 
     if args.binary:
         print("Preparing binary file.")
+
+    print(f"Using scaler {args.scaler_name}")
+
     X_tr, X_te, y_tr, y_te = preproc(args.filename,
         n_samples=args.n_samples,
         drop_classes=args.drop_classes,
@@ -210,7 +219,9 @@ if __name__ == "__main__":
         scaler_name=args.scaler_name)
             # split=args.split)
 
-    out_filename = prepare_filename(args.filename, args.output_dir, args.drop_classes)
+    # X_tr, X_te, y_tr, y_te = pandify(X_tr, X_te, y_tr, y_te)
+
+    out_filename = prepare_filename(args)
     # out_filename += '.csv'
     print(f'Saving to {out_filename}.csv')
     res_tr = pd.concat([X_tr, y_tr], axis=1)
