@@ -4,7 +4,7 @@ from tslearn.preprocessing import TimeSeriesScalerMinMax
 from sklearn.model_selection import train_test_split
 from sklearn.utils import resample
 
-import argparse
+import argparse, os
 
 from tslearn.utils import to_time_series_dataset
 from imblearn.over_sampling import SMOTE
@@ -31,7 +31,7 @@ def apply_smote(X, y):
 
     return X_resampled, y_resampled
 
-def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False, split=False):
+def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False, split=False, output_dir=None):
     df = pd.read_csv(filename)
 
     # Dropping redundant index
@@ -58,16 +58,16 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False, 
     X = to_time_series_dataset(df.drop(columns=['target']))
     y = df['target'].values
 
-    # Scale the time series
-    scaler = TimeSeriesScalerMinMax()
-    X_scaled = scaler.fit_transform(X)
+    # # Scale the time series
+    # scaler = TimeSeriesScalerMinMax()
+    # X_scaled = scaler.fit_transform(X)
 
     # Reshape for SMOTE (samples, timestamps*features)
-    X_reshaped = X_scaled.reshape(X_scaled.shape[0], -1)
+    X_reshaped = X.reshape(X.shape[0], -1)
 
     if smote:
-        X_resampled, y_resampled = apply_smote(X_reshaped, y)
-
+        # X_resampled, y_resampled = apply_smote(X_reshaped, y)
+        pass
     else:
         # if n_samples is -1, undersampling to size of least common class
         if n_samples == -1:
@@ -85,6 +85,7 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False, 
         selected_indices = np.sort(np.concatenate(list(class_indices.values())))
 
         # Select the samples using the indices
+        # X_resampled = X_reshaped[selected_indices]
         X_resampled = X_reshaped[selected_indices]
         y_resampled = y[selected_indices]
 
@@ -99,12 +100,14 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False, 
     print('Resulting features shape', X_resampled.shape)
     print('Resulting target shape', y_resampled.shape)
     #out_filename reflects if binary, if smote, and if drop_classes
-    out_filename = filename[:-4]
+    out_filename = os.path.basename(filename)[:-4]
+    # out_filename = filename[:-4]
     if binary:
         out_filename += '_binary'
     if smote:
         out_filename += '_smote'
     out_filename += f'_drop{"".join(drop_classes)}'
+    out_filename = os.path.join(output_dir, out_filename)
     # out_filename += '.csv'
     print(f'Saving to {out_filename}.csv')
     res = pd.concat([X_resampled, y_resampled], axis=1)
@@ -114,7 +117,7 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False, 
         split_data(res, test_size_test=0.2, test_size_val=0.2, out_filename=out_filename)
 
 
-def split_data(df, test_size_test=0.2, test_size_val=0.2, out_filename="split-data"):
+def split_data(df, test_sizei_test=0.2, test_size_val=0.2, out_filename="split-data"):
     X = df.drop(columns="target")
     y = df.target
     # train_test split
@@ -154,6 +157,8 @@ if __name__ == "__main__":
     parser.add_argument('--smote', action='store_true', help='Use SMOTE instead of undersampling', default=False)
     parser.add_argument('--split', action='store_true', help='Start the train_test_val split', default=False)
     parser.add_argument('--drop_classes', nargs='+', choices=['N', 'F', 'Q', 'S', 'V'], help='List of classes to drop (N, F, Q, S, V)', default=[])
+    parser.add_argument("--output_dir", type=str, default=os.getcwd(), help="Path to save the results")
+
     # parser.add_argument('--classes', type=list, help='Number of classes to keep', default=-1)
     args = parser.parse_args()
 
@@ -167,4 +172,5 @@ if __name__ == "__main__":
             drop_classes=args.drop_classes,
             binary=args.binary,
             smote=args.smote,
+            output_dir=args.output_dir,
             split=args.split)
