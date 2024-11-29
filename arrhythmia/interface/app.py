@@ -11,26 +11,15 @@ st.markdown('''
 Howdy, dear heart-doctor, let's detect if your patients have arrhythmia.
 ''')
 
-
+## CSV uploader
 uploaded_file = st.file_uploader(
     "Upload your patient's ECG file below:",
     type="csv",
     help="Only 1 file at a time please, in .csv format"
     )
+
+## Preview of uploaded CSV
 if uploaded_file is not None:
-    # To read file as bytes:
-    # bytes_data = uploaded_file.getvalue()
-    # st.write(bytes_data)
-
-    # To convert to a string based IO:
-    # stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
-    # st.write(stringio)
-
-    # To read file as string:
-    # string_data = stringio.read()
-    # st.write(string_data)
-
-    # Can be used wherever a "file-like" object is accepted:
     dataframe = pd.read_csv(uploaded_file)
     df = dataframe.drop(columns="target")
     st.markdown("Here's a preview of the data you just uploaded:")
@@ -42,3 +31,8 @@ if uploaded_file is not None:
     # st.line_chart(x=df.head(1).T[0].index, y=df.head(1).T[0])
     data = df.head(1).T
     st.line_chart(data[0])
+
+## Button to classify heartbeats
+# st.button("Start", type="primary")
+if st.button("Start"):
+    st.write("Loading...")
