@@ -9,3 +9,4 @@ h5py
 dtaidistance==2.3.12
 tslearn
 imblearn
+google-cloud-storage
