@@ -1,35 +1,70 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import cross_val_score
 from xgboost import XGBClassifier
 
-def predict_pca_
+def predict_pca_xgboost(X_train, y_train, X_test):
+    data_features = X_train.columns
 
-# def predict_dtw_dtaidistance(X_tr, y_tr, test_sample, window=10):
-#     # Fixes "non-writable" error
-#     X_tr = X_tr.to_numpy().copy()
-#     y_tr = y_tr.to_numpy().copy()
+    # scaling to have the data centered around 0 (necessary for PCA)
+    scaler = StandardScaler()
+    scaler.fit(X_train)
+    X_train = pd.DataFrame(scaler.transform(X_train), columns=data_features)
 
-#     # itertuples also takes index, remove it
-#     test_sample = np.array(test_sample[1:]).copy()
+    # compute the principal components
+    pca = PCA()
+    pca.fit(X_train)
 
-#     distances = []
-#     for i in range(len(X_tr)):
-#         train_sample = X_tr[i].copy()  # Ensure train_sample is writable
+    W = pca.components_
 
-#         # Compute DTW distance
-#         distance = distance_fast(test_sample, train_sample, window=window)
-#         distances.append(distance)
+    W_df = pd.DataFrame(W.T,
+                index=data_features,
+                columns=[f'PC{i}' for i in data_features])
 
-#     # Find the nearest neighbor
-#     nearest_idx = np.argmin(distances)
-#     return y_tr[nearest_idx]  # Predicted class
+    # project out dataset into this new set of PCs
+    X_proj = pca.transform(X_train)
+    X_proj = pd.DataFrame(X_proj,
+                columns=[f'PC{i}' for i in data_features])
 
+    # Compute PCs
+    eig_vals, eig_vecs = np.linalg.eig(np.dot(X_train.T,X_train))
+
+    W = pd.DataFrame(eig_vecs,
+                index=data_features,
+                columns=[f'PC{i}' for i in data_features])
+
+    # XGBoost Classifier
+    model = XGBClassifier()
+    k = 8 # best estimated number of PCs to consider to have around 0.97 of accuracy
+
+    pca_k = PCA(n_components=k).fit(X_train)
+    X_proj_k = pd.DataFrame(pca_k.transform(X_train), columns=[f'PC{i}' for i in range(1,k+1)])
+
+    model.fit(X_proj_k, convert(y_train))
+
+    X_test_proj = pd.DataFrame(pca_k.transform(X_test), columns=[f'PC{i}' for i in range(1,k+1)])
+    y_pred = invert(model.predict(X_test_proj))
+
+    return y_pred
+
+def convert(y):
+    '''function to convert y in the format expected by XGBClassifier'''
+    return y.map({
+        0: 0,
+        2: 1,
+        3: 2,
+        4: 3
+    })
+
+def invert(y):
+    '''function to convert back our predictions in the original format'''
+    return pd.Series(y).map({
+        0: 0,
+        1: 2,
+        2: 3,
+        3: 4
+    })
 
 # def main(args):
 #     filename_train = args.filename_train
@@ -80,20 +115,20 @@ def predict_pca_
 
 
 # main function
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("filename_train", type=str, help="Path to the preprocessed training data file")
-    parser.add_argument("filename_test", type=str, help="Path to the preprocessed test data file")
-    parser.add_argument("--windows", type=int, default=[10], nargs='+', help="Window size(s) for DTW")
-    parser.add_argument("--n_jobs", type=int, default=-1, help="Number of jobs for parallel processing")
-    parser.add_argument("--small_run", action="store_true", help="Run a small version of the experiment")
-    parser.add_argument("--train_samples", type=int, default=None, help="Number of training samples to use (none given = use all)")
-    parser.add_argument("--test_samples", type=int, default=None, help="Number of test samples to use (none given = use all)")
-    parser.add_argument("--output_dir", type=str, default=os.getcwd(), help="Path to save the results")
-    args = parser.parse_args()
+# if __name__ == "__main__":
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument("filename_train", type=str, help="Path to the preprocessed training data file")
+#     parser.add_argument("filename_test", type=str, help="Path to the preprocessed test data file")
+#     parser.add_argument("--windows", type=int, default=[10], nargs='+', help="Window size(s) for DTW")
+#     parser.add_argument("--n_jobs", type=int, default=-1, help="Number of jobs for parallel processing")
+#     parser.add_argument("--small_run", action="store_true", help="Run a small version of the experiment")
+#     parser.add_argument("--train_samples", type=int, default=None, help="Number of training samples to use (none given = use all)")
+#     parser.add_argument("--test_samples", type=int, default=None, help="Number of test samples to use (none given = use all)")
+#     parser.add_argument("--output_dir", type=str, default=os.getcwd(), help="Path to save the results")
+#     args = parser.parse_args()
 
-    if args.small_run:
-        print("Running small run, overriding window size (to 10) and n_jobs (to 1)")
-        args.windows = [10]
-        args.n_jobs = 1
-    main(args)
+#     if args.small_run:
+#         print("Running small run, overriding window size (to 10) and n_jobs (to 1)")
+#         args.windows = [10]
+#         args.n_jobs = 1
+#     main(args)
