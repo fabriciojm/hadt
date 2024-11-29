@@ -1,6 +1,6 @@
 pandas==2.2.3
-matplotlib
-numpy
-tensorflow
-scikit-learn
-fastdtw
+matplotlib==3.9.2
+numpy==1.26.4
+tensorflow==2.16.2
+scikit-learn==1.5.2
+fastdtw==0.3.4
