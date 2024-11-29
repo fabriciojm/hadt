@@ -8,11 +8,35 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.metrics import classification_report
 from tensorflow.keras.utils import to_categorical
+import os
+
+def initialize_model(X_train):
+        #Initialize the model
+    model = models.Sequential()
+
+    model.add(layers.Conv1D(8,3, activation='relu', input_shape=X_train.shape[1:]))
+
+    model.add(layers.Conv1D(16,3, activation='relu'))
+    model.add(layers.MaxPooling1D(2))
+    model.add(layers.Dropout(0.2))
+    model.add(layers.BatchNormalization()) #normalise  pour accélerer entrainement
+    model.add(layers.Flatten())
+
+    model.add(layers.Dense(32, activation='relu'))
+    model.add(layers.Dropout(0.5))
+
+    model.add(layers.Dense(4,activation='softmax'))
+
+    model.compile(loss='categorical_crossentropy',
+                optimizer=optimizers.Adam(),
+                metrics=['accuracy','recall','precision'])
+
+    return model
 
 
 def apply_cnn(filename):
     #load and split data
-    data = pd.read_csv('../raw_data/MIT-BIH_dropF.csv')
+    data = pd.read_csv(filename)
     X,y = data.drop(columns=['target']),data.target
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
 
@@ -34,26 +58,6 @@ def apply_cnn(filename):
     y_cat_train = to_categorical(y_train_remapped, num_classes=4)
     y_cat_test = to_categorical(y_test_remapped, num_classes=4)
 
-    #Initialize the model
-    model = models.Sequential()
-
-    model.add(layers.Conv1D(8,3, activation='relu', input_shape=X_train.shape[1:]))
-
-    model.add(layers.Conv1D(16,3, activation='relu'))
-    model.add(layers.MaxPooling1D(2))
-    model.add(layers.Dropout(0.2))
-    model.add(layers.BatchNormalization()) #normalise  pour accélerer entrainement
-    model.add(layers.Flatten())
-
-    model.add(layers.Dense(32, activation='relu'))
-    model.add(layers.Dropout(0.5))
-
-    model.add(layers.Dense(4,activation='softmax'))
-
-    model.compile(loss='categorical_crossentropy',
-                optimizer=optimizers.Adam(),
-                metrics=['accuracy','recall','precision'])
-
     model = initialize_model(X_train)
 
     #fit the model
@@ -66,11 +70,11 @@ def apply_cnn(filename):
             callbacks=[es])
 
     res = model.evaluate(X_test, y_test, verbose = 1 )
-    print(res)
+    return(res)
 
 
 if __name__=="__main__":
- #   apply_cnn(../../../)
+#   apply_cnn(../../../)
     rootpath=(os.path.dirname(__file__)) #print(os.getcwd())
     relativepath="../../../raw_data/MIT-BIH_dropF.csv"
     csv_path=os.path.join(rootpath,relativepath)
