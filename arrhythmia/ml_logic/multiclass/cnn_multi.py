@@ -8,6 +8,30 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.metrics import classification_report
 from tensorflow.keras.utils import to_categorical
+import os
+
+def initialize_model(X_train):
+        #Initialize the model
+    model = models.Sequential()
+
+    model.add(layers.Conv1D(8,3, activation='relu', input_shape=X_train.shape[1:]))
+
+    model.add(layers.Conv1D(16,3, activation='relu'))
+    model.add(layers.MaxPooling1D(2))
+    model.add(layers.Dropout(0.2))
+    model.add(layers.BatchNormalization()) #normalise  pour accélerer entrainement
+    model.add(layers.Flatten())
+
+    model.add(layers.Dense(32, activation='relu'))
+    model.add(layers.Dropout(0.5))
+
+    model.add(layers.Dense(4,activation='softmax'))
+
+    model.compile(loss='categorical_crossentropy',
+                optimizer=optimizers.Adam(),
+                metrics=['accuracy','recall','precision'])
+
+    return model
 
 
 def apply_cnn(filename):
@@ -33,26 +57,6 @@ def apply_cnn(filename):
     #OHE encode
     y_cat_train = to_categorical(y_train_remapped, num_classes=4)
     y_cat_test = to_categorical(y_test_remapped, num_classes=4)
-
-    #Initialize the model
-    model = models.Sequential()
-
-    model.add(layers.Conv1D(8,3, activation='relu', input_shape=X_train.shape[1:]))
-
-    model.add(layers.Conv1D(16,3, activation='relu'))
-    model.add(layers.MaxPooling1D(2))
-    model.add(layers.Dropout(0.2))
-    model.add(layers.BatchNormalization()) #normalise  pour accélerer entrainement
-    model.add(layers.Flatten())
-
-    model.add(layers.Dense(32, activation='relu'))
-    model.add(layers.Dropout(0.5))
-
-    model.add(layers.Dense(4,activation='softmax'))
-
-    model.compile(loss='categorical_crossentropy',
-                optimizer=optimizers.Adam(),
-                metrics=['accuracy','recall','precision'])
 
     model = initialize_model(X_train)
 
