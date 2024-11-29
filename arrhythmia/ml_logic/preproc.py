@@ -4,10 +4,28 @@ from tslearn.preprocessing import TimeSeriesScalerMinMax, TimeSeriesScalerMeanVa
 from sklearn.model_selection import train_test_split
 from sklearn.utils import resample
 
-import argparse, os
+import argparse, os, io
+from google.cloud import storage
 
 from tslearn.utils import to_time_series_dataset
 from imblearn.over_sampling import SMOTE
+
+
+def df_from_bucket():
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/home/fabricio/arrhythmia-442911-3fe797ff4111.json'
+    storage_client = storage.Client()
+    bucket_name = 'arrhythmia_raw_data'
+    file_name = 'MIT-BIH_raw.csv'
+
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(file_name)
+
+    # Download as bytes
+    content = blob.download_as_bytes()
+
+    # Convert to pandas DataFrame (for CSV files)
+    df = pd.read_csv(io.BytesIO(content))
+    return df
 
 def apply_smote(X, y):
     # This function is not working
@@ -70,7 +88,7 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False,
     if smote:
         # X_resampled, y_resampled = apply_smote(X_reshaped, y)
         pass
-    # undersample
+    # undersample should be a function
     else:
         # if n_samples is -1, undersampling to size of least common class
         if n_samples == -1:
@@ -88,14 +106,11 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False,
         selected_indices = np.sort(np.concatenate(list(class_indices.values())))
 
         # Select the samples using the indices
-        # X_resampled = X_reshaped[selected_indices]
         X = X[selected_indices]
         y = y[selected_indices]
 
         # should be refactored
         # Convert back to dataframe
-        # X = pd.DataFrame(X, columns=df.drop(columns='target').columns)
-        # y = pd.Series(y, name='target')
         X = pd.DataFrame(X, columns=df.drop(columns='target').columns)
         y = pd.Series(y, name='target')
 
@@ -113,24 +128,24 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False,
         print(f"Error: {scaler_name} not known.")
         return
 
+    X_tr = scaler.fit_transform(X_tr)
+    X_te = scaler.transform(X_te)
 
-
-    #out_filename bricolage, reflects if binary, if smote, and if drop_classes
-    out_filename = os.path.basename(filename)[:-4]
-    basename = basename.replace('raw', 'preproc')
-    if binary:
-        out_filename += '_binary'
-    if smote:
-        out_filename += '_smote'
-    out_filename += f'_drop{"".join(drop_classes)}'
-    out_filename = os.path.join(output_dir, out_filename)
-    # out_filename += '.csv'
-    print(f'Saving to {out_filename}.csv')
-    res = pd.concat([X_resampled, y_resampled], axis=1)
-    res.to_csv(f"{out_filename}.csv", index=False)
+    return X_tr, X_te, y_tr, y_te
 
     # if split == True:
         # split_data(res, test_size_test=0.2, test_size_val=0.2, out_filename=out_filename)
+
+def prepare_filename(filename, output_dir, drop_classes):
+    os.path.basename(filename)[:-4]
+    out_filename = out_filename.replace('raw', 'preproc')
+    if args.binary:
+        out_filename += '_binary'
+    if args.smote:
+        out_filename += '_smote'
+    out_filename += f'_drop{"".join(drop_classes)}'
+    out_filename = os.path.join(output_dir, out_filename)
+    return out_filename
 
 
 def split_data(df, test_size_test=0.2, test_size_val=0.2, out_filename="split-data"):
@@ -148,6 +163,8 @@ def split_data(df, test_size_test=0.2, test_size_val=0.2, out_filename="split-da
         test_size=test_size_val,
         random_state=42
     )
+
+
     # convert results in csv files
     ## train
     res_train = pd.concat([X_train, y_train], axis=1)
@@ -164,17 +181,15 @@ def split_data(df, test_size_test=0.2, test_size_val=0.2, out_filename="split-da
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Preprocess the data, perform class balance using SMOTE')
+    parser = argparse.ArgumentParser(description='Preprocess the data, perform class balance')
     parser.add_argument('filename', type=str, help='Path to the input CSV file')
-    # n_samples defaults to -1, which means undersampling and smote is False
-    # in this case, the number of samples is the number of samples of the least common class
     parser.add_argument('--n_samples', type=int, help='Number of samples per class (defaults to -1, which means undersampling to size of least common class)', default=-1)
     parser.add_argument('--binary', action='store_true', help='Group data into two classes (0, 1)', default=False)
-    parser.add_argument('--smote', action='store_true', help='Use SMOTE instead of undersampling', default=False)
+    parser.add_argument('--smote', action='store_true', help='Use SMOTE oversampling (to be finished)', default=False)
     # parser.add_argument('--split', action='store_true', help='Start the train_test_val split', default=False)
     parser.add_argument('--drop_classes', nargs='+', choices=['N', 'F', 'Q', 'S', 'V'], help='List of classes to drop (N, F, Q, S, V)', default=[])
     parser.add_argument("--output_dir", type=str, default=os.getcwd(), help="Path to save the results")
-    parser.add_argument("--scaler_name", type=str, default="Standard", help="Scaler to be used in preproc (default Standard)")
+    parser.add_argument("--scaler_name", type=str, default="Standard", help="Scaler to be used (default Standard)")
 
     # parser.add_argument('--classes', type=list, help='Number of classes to keep', default=-1)
     args = parser.parse_args()
@@ -186,11 +201,19 @@ if __name__ == "__main__":
 
     if args.binary:
         print("Preparing binary file.")
-    preproc(args.filename,
-            n_samples=args.n_samples,
-            drop_classes=args.drop_classes,
-            binary=args.binary,
-            smote=args.smote,
-            output_dir=args.output_dir,
-            scaler_name=args.scaler_name,
+    X_tr, X_te, y_tr, y_te = preproc(args.filename,
+        n_samples=args.n_samples,
+        drop_classes=args.drop_classes,
+        binary=args.binary,
+        smote=args.smote,
+        output_dir=args.output_dir,
+        scaler_name=args.scaler_name)
             # split=args.split)
+
+    out_filename = prepare_filename(args.filename, args.output_dir, args.drop_classes)
+    # out_filename += '.csv'
+    print(f'Saving to {out_filename}.csv')
+    res_tr = pd.concat([X_tr, y_tr], axis=1)
+    res_te = pd.concat([X_te, y_te], axis=1)
+    res_tr.to_csv(f"{out_filename}_train.csv", index=False)
+    res_te.to_csv(f"{out_filename}_test.csv", index=False)
