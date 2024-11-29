@@ -109,3 +109,12 @@ def apply_cnn(filename):
 
     res = model.evaluate(X_test, y_test, verbose = 1 )
     print(res)
+
+
+if __name__=="__main__":
+ #   apply_cnn(../../../)
+    rootpath=(os.path.dirname(__file__)) #print(os.getcwd())
+    relativepath="../../../raw_data/MIT-BIH_dropF.csv"
+    csv_path=os.path.join(rootpath,relativepath)
+    print(csv_path)
+    print(apply_cnn(csv_path))
