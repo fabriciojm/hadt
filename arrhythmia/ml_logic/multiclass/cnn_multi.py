@@ -12,7 +12,7 @@ from tensorflow.keras.utils import to_categorical
 
 def apply_cnn(filename):
     #load and split data
-    data = pd.read_csv('../raw_data/MIT-BIH_dropF.csv')
+    data = pd.read_csv(filename)
     X,y = data.drop(columns=['target']),data.target
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
 
@@ -70,9 +70,7 @@ def apply_cnn(filename):
 
 
 if __name__=="__main__":
- #   apply_cnn(../../../)
-    rootpath=(os.path.dirname(__file__)) #print(os.getcwd())
-    relativepath="../../../raw_data/MIT-BIH_dropF.csv"
-    csv_path=os.path.join(rootpath,relativepath)
-    print(csv_path)
-    print(apply_cnn(csv_path))
+    # rootpath=(os.path.dirname(__file__)) #print(os.getcwd())
+    # relativepath="../../../raw_data/MIT-BIH_dropF.csv"
+    # csv_path=os.path.join(rootpath,relativepath)
+    print(apply_cnn(filename))
