@@ -1,6 +1,7 @@
 import pandas as pd, numpy as np, seaborn as sns
 import matplotlib.pyplot as plt
 from tslearn.preprocessing import TimeSeriesScalerMinMax
+from sklearn.model_selection import train_test_split
 from sklearn.utils import resample
 
 import argparse
@@ -30,7 +31,7 @@ def apply_smote(X, y):
 
     return X_resampled, y_resampled
 
-def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False):
+def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False, split=False):
     df = pd.read_csv(filename)
 
     # Dropping redundant index
@@ -43,7 +44,7 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False):
     df = df[~df['target'].isin(enc_drop_classes)]
 
     # number of out classes
-    n_classes_out = df.target.nunique()
+    # n_classes_out = df.target.nunique()
 
     # Have 0 as the positive normal class
     replace = {1: 0, 0: 1}
@@ -70,7 +71,7 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False):
     else:
         # if n_samples is -1, undersampling to size of least common class
         if n_samples == -1:
-            n_samples = df.target.value_counts().sort_values(ascending=False).iloc[1]
+            n_samples = df.target.value_counts().sort_values(ascending=False).iloc[-1]
         # Get indices for each class
         class_indices = {}
         for class_label in np.unique(y):
@@ -103,11 +104,45 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False):
         out_filename += '_binary'
     if smote:
         out_filename += '_smote'
-    out_filename += f'_{n_classes_out}classes'
-    out_filename += '.csv'
-    print(f'Saving to {out_filename}')
+    out_filename += f'_drop{"".join(drop_classes)}'
+    # out_filename += '.csv'
+    print(f'Saving to {out_filename}.csv')
     res = pd.concat([X_resampled, y_resampled], axis=1)
-    res.to_csv(out_filename, index=False)
+    res.to_csv(f"{out_filename}.csv", index=False)
+
+    if split == True:
+        split_data(res, test_size_test=0.2, test_size_val=0.2, out_filename=out_filename)
+
+
+def split_data(df, test_size_test=0.2, test_size_val=0.2, out_filename="split-data"):
+    X = df.drop(columns="target")
+    y = df.target
+    # train_test split
+    X_train_temp, X_test, y_train_temp, y_test = train_test_split(
+        X, y,
+        test_size=test_size_test,
+        random_state=42
+    )
+    # train_validation_test split
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_train_temp, y_train_temp,
+        test_size=test_size_val,
+        random_state=42
+    )
+    # convert results in csv files
+    ## train
+    res_train = pd.concat([X_train, y_train], axis=1)
+    print(f"Saving to {out_filename}_train.csv")
+    res_train.to_csv(f"{out_filename}_train.csv", index=False)
+    ## test
+    res_test = pd.concat([X_test, y_test], axis=1)
+    print(f"Saving to {out_filename}_test.csv")
+    res_test.to_csv(f"{out_filename}_test.csv", index=False)
+    ## val
+    res_val = pd.concat([X_val, y_val], axis=1)
+    print(f"Saving to {out_filename}_val.csv")
+    res_val.to_csv(f"{out_filename}_val.csv", index=False)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Preprocess the data, perform class balance using SMOTE')
@@ -117,6 +152,7 @@ if __name__ == "__main__":
     parser.add_argument('--n_samples', type=int, help='Number of samples per class (defaults to -1, which means undersampling to size of least common class)', default=-1)
     parser.add_argument('--binary', action='store_true', help='Group data into two classes (0, 1)', default=False)
     parser.add_argument('--smote', action='store_true', help='Use SMOTE instead of undersampling', default=False)
+    parser.add_argument('--split', action='store_true', help='Start the train_test_val split', default=False)
     parser.add_argument('--drop_classes', nargs='+', choices=['N', 'F', 'Q', 'S', 'V'], help='List of classes to drop (N, F, Q, S, V)', default=[])
     # parser.add_argument('--classes', type=list, help='Number of classes to keep', default=-1)
     args = parser.parse_args()
@@ -124,10 +160,11 @@ if __name__ == "__main__":
     if args.drop_classes == []:
         print('Preprocess keeping all classes')
     else:
-        print(f'Preprocess dropping {args.drop_classes} classes')
+        print(f'Preprocess dropping {args.drop_classes} class(es)')
 
     preproc(args.filename,
             n_samples=args.n_samples,
             drop_classes=args.drop_classes,
             binary=args.binary,
-            smote=args.smote)
+            smote=args.smote,
+            split=args.split)
