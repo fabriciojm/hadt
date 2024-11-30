@@ -3,19 +3,18 @@ import matplotlib.pyplot as plt
 from tslearn.preprocessing import TimeSeriesScalerMinMax, TimeSeriesScalerMeanVariance
 from sklearn.model_selection import train_test_split
 from sklearn.utils import resample
-
-import argparse, os, io
-from google.cloud import storage
-
 from tslearn.utils import to_time_series_dataset
 from imblearn.over_sampling import SMOTE
 
+import argparse, os, io, json
+from google.cloud import storage
 
-def df_from_bucket():
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/home/fabricio/arrhythmia-442911-3fe797ff4111.json'
+def df_from_bucket(bucket_name='arrhythmia_raw_data', file_name='MIT-BIH_raw.csv', key_path='/home/fabricio/arrhythmia-442911-3fe797ff4111.json'):
+    
+    print(f'Getting {file_name} from {bucket_name} gcp bucket.')
+    # Set the environment variable for the service account key
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = key_path
     storage_client = storage.Client()
-    bucket_name = 'arrhythmia_raw_data'
-    file_name = 'MIT-BIH_raw.csv'
 
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(file_name)
@@ -28,45 +27,82 @@ def df_from_bucket():
     return df
 
 def apply_smote(X, y):
-    # This function is not working
-    smote = SMOTE(random_state=42)
-    X_resampled, y_resampled = smote.fit_resample(X_reshaped, y)
+    pass
+    # # This function is not working
+    # smote = SMOTE(random_state=42)
+    # X_resampled, y_resampled = smote.fit_resample(X_reshaped, y)
 
-    # Reshape back to time series format
-    X_resampled = X_resampled.reshape(-1, 180)
-    X = X.reshape(-1, 180)
+    # # Reshape back to time series format
+    # X_resampled = X_resampled.reshape(-1, 180)
+    # X = X.reshape(-1, 180)
 
-    # Convert back to dataframe
-    X = pd.DataFrame(X, columns=df.drop(columns='target').columns)
+    # # Convert back to dataframe
+    # X = pd.DataFrame(X, columns=df.drop(columns='target').columns)
+    # y = pd.Series(y, name='target')
+    # X_resampled = pd.DataFrame(X_resampled, columns=df.drop(columns='target').columns)
+    # y_resampled = pd.Series(y_resampled, name='target')
+
+    # # Shuffle order
+    # rand_idx = np.random.permutation(X_resampled.index)
+    # X_resampled = X_resampled.loc[rand_idx].reset_index(drop=True)
+    # y_resampled = y_resampled.loc[rand_idx].reset_index(drop=True)
+
+    # return X_resampled, y_resampled
+
+
+def undersample(X, y, n_samples):
+    # if n_samples is -1, undersampling to size of least common class
+    if n_samples == -1:
+        # Get counts of each unique value and find minimum
+        _, counts = np.unique(y, return_counts=True)
+        n_samples = np.min(counts)
+        # n_samples = y.value_counts().sort_values(ascending=False).iloc[-1]
+    # Get indices for each class
+    class_indices = {}
+    for class_label in np.unique(y):
+        class_mask = (y == class_label)
+        indices = np.where(class_mask)[0]
+        # Randomly select n_samples indices for this class
+        selected = np.random.choice(indices, size=n_samples, replace=False)
+        class_indices[class_label] = selected
+
+    # Combine all selected indices and sort them
+    selected_indices = np.sort(np.concatenate(list(class_indices.values())))
+
+    # Select the samples using the indices
+    X = X[selected_indices]
+    y = y[selected_indices]
+
+    return X, y
+
+def pandasify(X, y, ts_features):
+    X = pd.DataFrame(X.squeeze(), columns=ts_features)
     y = pd.Series(y, name='target')
-    X_resampled = pd.DataFrame(X_resampled, columns=df.drop(columns='target').columns)
-    y_resampled = pd.Series(y_resampled, name='target')
+    return pd.concat([X, y], axis=1)
 
-    # Shuffle order
-    rand_idx = np.random.permutation(X_resampled.index)
-    X_resampled = X_resampled.loc[rand_idx].reset_index(drop=True)
-    y_resampled = y_resampled.loc[rand_idx].reset_index(drop=True)
-
-    return X_resampled, y_resampled
-
-def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False,
-            split=False, output_dir=None, scaler_name='Standard'):
-
-    df = pd.read_csv(filename)
+def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, split=False,
+            scaler_name='MeanVariance'):
+    
+    # Create a copy to avoid funny errors
+    df = df.copy()
+    
+    if args.drop_classes == []:
+        print('Preprocess keeping all classes')
+    else:
+        print(f'Preprocess dropping {args.drop_classes} class(es)')
+    if binary:
+        print("Preparing two class file.")
 
     # Dropping redundant index
     df.drop(columns=['Unnamed: 0'], inplace=True)
 
     # Original encoding of the classes
     enc = {'F': 0, 'N': 1, 'Q': 2, 'S': 3, 'V': 4}
-    #drop rows where target is in drop_classes
+    #drop rows where target is in drop_classes (using loc for proper assignment)
     enc_drop_classes = [enc[c] for c in drop_classes]
-    df = df[~df['target'].isin(enc_drop_classes)]
+    df = df.loc[~df['target'].isin(enc_drop_classes)].reset_index(drop=True)
 
-    # number of out classes
-    # n_classes_out = df.target.nunique()
-
-    # Have 0 as the positive normal class
+    # Have 0 as the normal class
     replace = {1: 0, 0: 1}
     df['target'] = df['target'].apply(lambda x: replace[x] if x in replace else x)
 
@@ -78,80 +114,66 @@ def preproc(filename, n_samples=-1, drop_classes=[], binary=False, smote=False,
     X = to_time_series_dataset(df.drop(columns=['target']))
     y = df['target'].values
 
-    # # Scale the time series
-    # scaler = TimeSeriesScalerMinMax()
-    # X_scaled = scaler.fit_transform(X)
-
     # Reshape
     X = X.reshape(X.shape[0], -1)
 
+
+    # Balance classes
     if smote:
-        # X_resampled, y_resampled = apply_smote(X_reshaped, y)
         pass
-    # undersample should be a function
     else:
-        # if n_samples is -1, undersampling to size of least common class
-        if n_samples == -1:
-            n_samples = df.target.value_counts().sort_values(ascending=False).iloc[-1]
-        # Get indices for each class
-        class_indices = {}
-        for class_label in np.unique(y):
-            class_mask = (y == class_label)
-            indices = np.where(class_mask)[0]
-            # Randomly select n_samples indices for this class
-            selected = np.random.choice(indices, size=n_samples, replace=False)
-            class_indices[class_label] = selected
-
-        # Combine all selected indices and sort them
-        selected_indices = np.sort(np.concatenate(list(class_indices.values())))
-
-        # Select the samples using the indices
-        X = X[selected_indices]
-        y = y[selected_indices]
-
-        # should be refactored
-        # Convert back to dataframe
-        # X = pd.DataFrame(X, columns=df.drop(columns='target').columns)
-        # y = pd.Series(y, name='target')
-
+        X, y = undersample(X, y, n_samples)
+        
     print('Resulting features shape', X.shape)
     print('Resulting target shape', y.shape)
 
-    # train_test_split
-    X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    if scaler_name == "Standard":
+    # Scale the time series
+    if scaler_name == "MeanVariance":
         scaler = TimeSeriesScalerMeanVariance()
     elif scaler_name == "MinMax":
         scaler = TimeSeriesScalerMinMax()
     else:
         print(f"Error: {scaler_name} not known.")
         return
+    # No data leakage doing fit_transform before split 
+    # as tslearn acts on each time series independently
+    X = scaler.fit_transform(X)
 
-    X_tr = scaler.fit_transform(X_tr)
-    X_te = scaler.transform(X_te)
+    # train_test_split
+    X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    X_tr = pd.DataFrame(X_tr.squeeze(), columns=df.drop(columns='target').columns)
-    y_tr = pd.Series(y_tr, name='target')
+    ts_features = df.drop(columns='target').columns
+    df_tr = pandasify(X_tr, y_tr, ts_features)
+    df_te = pandasify(X_te, y_te, ts_features)
 
-    X_te = pd.DataFrame(X_te.squeeze(), columns=df.drop(columns='target').columns)
-    y_te = pd.Series(y_te, name='target')
-
-    return X_tr, X_te, y_tr, y_te
+    return df_tr, df_te
 
     # if split == True:
         # split_data(res, test_size_test=0.2, test_size_val=0.2, out_filename=out_filename)
 
-def prepare_filename(args):
-    out_filename = os.path.basename(args.filename)[:-4]
+def prepare_filename(**kwargs):
+    # Extract required arguments from kwargs
+    filename = kwargs.get("filename", "default.csv")
+    binary = kwargs.get("binary", False)
+    smote = kwargs.get("smote", False)
+    scaler_name = kwargs.get("scaler_name", "Standard")
+    drop_classes = kwargs.get("drop_classes", [])
+    output_dir = kwargs.get("output_dir", "./")
+
+    # Prepare the filename
+    out_filename = os.path.basename(filename)[:-4]
     out_filename = out_filename.replace('raw', 'preproc')
-    if args.binary:
+
+    if binary:
         out_filename += '_binary'
-    if args.smote:
+    if smote:
         out_filename += '_smote'
-    out_filename += f"_{args.scaler_name}"
-    out_filename += f'_drop{"".join(args.drop_classes)}'
-    out_filename = os.path.join(args.output_dir, out_filename)
+    out_filename += f'_{scaler_name}'
+    if drop_classes:
+        out_filename += f"_drop{''.join(drop_classes)}"
+    out_filename = os.path.join(output_dir, out_filename)
+
     return out_filename
 
 
@@ -189,42 +211,52 @@ def prepare_filename(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Preprocess the data, perform class balance')
-    parser.add_argument('filename', type=str, help='Path to the input CSV file')
+    parser.add_argument('--config', type=str, help='Path to the configuration file')
+    parser.add_argument('--filename', type=str, help='Path to the input CSV file')
+    parser.add_argument('--from_bucket', action='store_true', help='Get the file from the bucket', default=False)
     parser.add_argument('--n_samples', type=int, help='Number of samples per class (defaults to -1, which means undersampling to size of least common class)', default=-1)
     parser.add_argument('--binary', action='store_true', help='Group data into two classes (0, 1)', default=False)
     parser.add_argument('--smote', action='store_true', help='Use SMOTE oversampling (to be finished)', default=False)
-    # parser.add_argument('--split', action='store_true', help='Start the train_test_val split', default=False)
+    parser.add_argument('--split', action='store_true', help='Start the train_test_val split', default=False)
     parser.add_argument('--drop_classes', nargs='+', choices=['N', 'F', 'Q', 'S', 'V'], help='List of classes to drop (N, F, Q, S, V)', default=[])
     parser.add_argument("--output_dir", type=str, default=os.getcwd(), help="Path to save the results")
-    parser.add_argument("--scaler_name", type=str, default="Standard", help="Scaler to be used (default Standard)")
+    parser.add_argument("--scaler_name", type=str, default="MeanVariance", help="Scaler to be used (default MeanVariance)")
 
     args = parser.parse_args()
 
-    if args.drop_classes == []:
-        print('Preprocess keeping all classes')
-    else:
-        print(f'Preprocess dropping {args.drop_classes} class(es)')
+    # Load config file
+    config = {}
+    if args.config:
+        with open(args.config, 'r') as file:
+            config = json.load(file)
 
-    if args.binary:
-        print("Preparing binary file.")
+    # Override config with CLI arguments
+    for key, value in vars(args).items():
+        if value is not None:  # Override if CLI argument is provided
+            config[key] = value
 
-    print(f"Using scaler {args.scaler_name}")
+    # print(f"Using scaler {args.scaler_name}")
 
-    X_tr, X_te, y_tr, y_te = preproc(args.filename,
-        n_samples=args.n_samples,
-        drop_classes=args.drop_classes,
-        binary=args.binary,
-        smote=args.smote,
-        output_dir=args.output_dir,
-        scaler_name=args.scaler_name)
-            # split=args.split)
+    # X_tr, X_te, y_tr, y_te = preproc(args.filename,
+    #     n_samples=args.n_samples,
+    #     drop_classes=args.drop_classes,
+    #     binary=args.binary,
+    #     smote=args.smote,
+    #     output_dir=args.output_dir,
+    #     scaler_name=args.scaler_name)
+    #         # split=args.split)
 
-    # X_tr, X_te, y_tr, y_te = pandify(X_tr, X_te, y_tr, y_te)
+    print(f"Using final config:\n{config}")
+    df = df_from_bucket() if args.from_bucket else pd.read_csv(args.filename)
+    df_tr, df_te = preproc(df,
+                           n_samples=config['n_samples'], drop_classes=config['drop_classes'],
+                           binary=config['binary'], smote=config['smote'],
+                           scaler_name=config['scaler_name'], split=config['split'])
 
-    out_filename = prepare_filename(args)
+    # Save to csv
+    # out_filename = prepare_filename(args)
+    out_filename = prepare_filename(**config)
     # out_filename += '.csv'
-    print(f'Saving to {out_filename}.csv')
-    res_tr = pd.concat([X_tr, y_tr], axis=1)
-    res_te = pd.concat([X_te, y_te], axis=1)
-    res_tr.to_csv(f"{out_filename}_train.csv", index=False)
-    res_te.to_csv(f"{out_filename}_test.csv", index=False)
+    print(f'Saving to {out_filename}_train.csv and {out_filename}_test.csv')
+    df_tr.to_csv(f"{out_filename}_train.csv", index=False)
+    df_te.to_csv(f"{out_filename}_test.csv", index=False)
