@@ -3,6 +3,8 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from xgboost import XGBClassifier
+from arrhythmia.ml_logic.preproc import preproc
+from sklearn.metrics import classification_report
 
 def convert(y):
     '''function to convert y in the format expected by XGBClassifier'''
@@ -55,8 +57,13 @@ def main(X_train, X_test, y_train, k=10):
 
 # main function
 if __name__ == "__main__":
-    data_train = pd.read_csv("../../../raw_data/MIT-BIH_raw_dropF_train.csv")
+    raw_data = pd.read_csv("../../../raw_data/MIT-BIH.csv")
+    data_train, data_test = preproc(raw_data, drop_classes=["F"], binary=False)
+    # data_train = pd.read_csv("../../../raw_data/MIT-BIH_raw_dropF_train.csv")
     X_train = data_train.drop(columns="target")
     y_train = data_train.target
-    X_test = pd.read_csv("../../../raw_data/MIT-BIH_raw_dropF_test.csv").drop(columns="target")
-    print(main(X_train, X_test, y_train, k=10))
+    # X_test = pd.read_csv("../../../raw_data/MIT-BIH_raw_dropF_test.csv").drop(columns="target")
+    X_test = data_test.drop(columns="target")
+    y_test = data_test.target
+    y_pred = main(X_train, X_test, y_train, k=10)
+    print(classification_report(y_test, y_pred))
