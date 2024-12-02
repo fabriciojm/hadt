@@ -4,7 +4,9 @@ numpy==1.26.4
 tensorflow
 scikit-learn
 fastdtw
+xgboost
 h5py
 dtaidistance==2.3.12
 tslearn
 imblearn
+google-cloud-storage
