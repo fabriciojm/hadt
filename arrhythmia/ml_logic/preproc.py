@@ -1,12 +1,13 @@
 import pandas as pd, numpy as np, seaborn as sns
 import matplotlib.pyplot as plt
 from tslearn.preprocessing import TimeSeriesScalerMinMax, TimeSeriesScalerMeanVariance
+from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.utils import resample
 from tslearn.utils import to_time_series_dataset
 from imblearn.over_sampling import SMOTE
 
-import argparse, os, io, json
+import argparse, os, io, json, pickle
 from google.cloud import storage
 
 def df_from_bucket(bucket_name='arrhythmia_raw_data', file_name='MIT-BIH_raw.csv', key_path='/home/fabricio/arrhythmia-442911-3fe797ff4111.json'):
@@ -25,6 +26,16 @@ def df_from_bucket(bucket_name='arrhythmia_raw_data', file_name='MIT-BIH_raw.csv
     # Convert to pandas DataFrame (for CSV files)
     df = pd.read_csv(io.BytesIO(content))
     return df
+
+def make_save_label_encoding(y, path):
+    le = LabelEncoder()
+    y = le.fit_transform(y)
+    mapping = dict(zip(le.classes_, range(len(le.classes_))))
+    with open(path, "wb") as f:
+        pickle.dump(mapping, f)
+    print('Encoding:', mapping)
+    print(f"Encoding saved to '{path}'")
+    return pd.Series(y, name='target')
 
 def apply_smote(X, y):
     pass
@@ -97,26 +108,27 @@ def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, val_sp
     df.drop(columns=['Unnamed: 0'], inplace=True)
 
     # Have 0 as the normal class, because in raw dataset N: 1
-    replace = {1: 0, 0: 1}
-    df['target'] = df['target'].apply(lambda x: replace[x] if x in replace else x)
-    # Encoding of classes
-    enc = {'N': 0, 'F': 1, 'Q': 2, 'S': 3, 'V': 4}
+    # replace = {1: 0, 0: 1}
+    # df['target'] = df['target'].apply(lambda x: replace[x] if x in replace else x)
+    # Original encoding of classes in MIT-BIH .csv
+    enc = {'N': 1, 'F': 0, 'Q': 2, 'S': 3, 'V': 4}
     inv_enc = {v: k for k, v in enc.items()}
-    #drop rows where target is in drop_classes (using loc for proper assignment)
+    # #drop rows where target is in drop_classes (using loc for proper assignment)
     enc_drop_classes = [enc[c] for c in drop_classes]
     df = df.loc[~df['target'].isin(enc_drop_classes)].reset_index(drop=True)
+    df['target'] = df['target'].apply(lambda x: inv_enc[x])
 
     # Mapping of classes:
-    unique_classes = sorted(df['target'].unique())
-    mapping = {old: new for new, old in enumerate(unique_classes)}
-    df['target'] = df['target'].apply(lambda x: mapping[x])
-    print("Mapping:")
-    for old, new in mapping.items():
-        print(f"{inv_enc[old]} -> {new}")
+    # unique_classes = sorted(df['target'].unique())
+    # mapping = {old: new for new, old in enumerate(unique_classes)}
+    # df['target'] = df['target'].apply(lambda x: mapping[x])
+    # print("Mapping:")
+    # for old, new in mapping.items():
+    #     print(f"{inv_enc[old]} -> {new}")
 
     # group data into two classes if binary is True, i.e.1 would group all classes that are not zero
     if binary:
-        df['target'] = df['target'].apply(lambda x: 1 if x != 0 else 0)
+        df['target'] = df['target'].apply(lambda x: 'N' if x == 1 else 'A')
 
     # Reshape data for tslearn (samples, timestamps, features)
     X = to_time_series_dataset(df.drop(columns=['target']))
@@ -133,7 +145,8 @@ def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, val_sp
         X, y = undersample(X, y, n_samples)
 
 
-    # Scale the time series
+    # Scale the time series, split
+
     if scaler_name == "MeanVariance":
         scaler = TimeSeriesScalerMeanVariance()
     elif scaler_name == "MinMax":
@@ -141,15 +154,18 @@ def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, val_sp
     else:
         print(f"Error: {scaler_name} not known.")
         return
-    # No data leakage doing fit_transform before split
-    # as tslearn acts on each time series independently
-    X = scaler.fit_transform(X)
+    # X = scaler.fit_transform(X)
 
-    # train_test_split
+    # train_test_split, scale
     if val_split:
         X_tr, X_te, X_va, y_tr, y_te, y_va = val_split_data(X, y)
     else:
         X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    X_tr = scaler.fit_transform(X_tr)
+    X_te = scaler.transform(X_te)
+    if val_split:
+        X_va = scaler.transform(X_va)
 
     ts_features = df.drop(columns='target').columns
     df_tr = pandasify(X_tr, y_tr, ts_features)
