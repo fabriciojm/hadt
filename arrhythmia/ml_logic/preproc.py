@@ -10,7 +10,7 @@ import argparse, os, io, json
 from google.cloud import storage
 
 def df_from_bucket(bucket_name='arrhythmia_raw_data', file_name='MIT-BIH_raw.csv', key_path='/home/fabricio/arrhythmia-442911-3fe797ff4111.json'):
-    
+
     print(f'Getting {file_name} from {bucket_name} gcp bucket.')
     # Set the environment variable for the service account key
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = key_path
@@ -80,16 +80,16 @@ def pandasify(X, y, ts_features):
     y = pd.Series(y, name='target')
     return pd.concat([X, y], axis=1)
 
-def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, split=False,
+def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, val_split=False,
             scaler_name='MeanVariance'):
-    
+
     # Create a copy to avoid funny errors
     df = df.copy()
-    
-    if args.drop_classes == []:
+
+    if drop_classes == []:
         print('Preprocess keeping all classes')
     else:
-        print(f'Preprocess dropping {args.drop_classes} class(es)')
+        print(f'Preprocess dropping {drop_classes} class(es)')
     if binary:
         print("Preparing two class file.")
 
@@ -123,9 +123,6 @@ def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, split=
         pass
     else:
         X, y = undersample(X, y, n_samples)
-        
-    print('Resulting features shape', X.shape)
-    print('Resulting target shape', y.shape)
 
 
     # Scale the time series
@@ -136,18 +133,30 @@ def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, split=
     else:
         print(f"Error: {scaler_name} not known.")
         return
-    # No data leakage doing fit_transform before split 
+    # No data leakage doing fit_transform before split
     # as tslearn acts on each time series independently
     X = scaler.fit_transform(X)
 
     # train_test_split
-    X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42)
+    if val_split:
+        X_tr, X_te, X_va, y_tr, y_te, y_va = val_split_data(X, y)
+    else:
+        X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42)
 
     ts_features = df.drop(columns='target').columns
     df_tr = pandasify(X_tr, y_tr, ts_features)
     df_te = pandasify(X_te, y_te, ts_features)
 
-    return df_tr, df_te
+    print('Train dims ', X_tr.shape, y_tr.shape)
+    print('Test dims ', X_te.shape, y_te.shape)
+    if val_split:
+        df_va = pandasify(X_va, y_va, ts_features)
+        print('Val dims ', X_va.shape, y_va.shape)
+
+    if val_split:
+        return df_tr, df_te, df_va
+    else:
+        return df_tr, df_te
 
     # if split == True:
         # split_data(res, test_size_test=0.2, test_size_val=0.2, out_filename=out_filename)
@@ -178,35 +187,36 @@ def prepare_filename(**kwargs):
 
 
 # def split_data(df, test_size_test=0.2, test_size_val=0.2, out_filename="split-data"):
-#     X = df.drop(columns="target")
-#     y = df.target
-#     # train_test split
-#     X_train_temp, X_test, y_train_temp, y_test = train_test_split(
-#         X, y,
-#         test_size=test_size_test,
-#         random_state=42
-#     )
-#     # train_validation_test split
-#     X_train, X_val, y_train, y_val = train_test_split(
-#         X_train_temp, y_train_temp,
-#         test_size=test_size_val,
-#         random_state=42
-#     )
+def val_split_data(X, y, test_size_test=0.2, test_size_val=0.2):
+    # X = df.drop(columns="target")
+    # y = df.target
+    # train_test split
+    X_train_temp, X_test, y_train_temp, y_test = train_test_split(
+        X, y,
+        test_size=test_size_test,
+        random_state=42
+    )
+    # train_validation_test split
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_train_temp, y_train_temp,
+        test_size=test_size_val,
+        random_state=42
+    )
+    return X_train, X_val, X_test, y_train, y_val, y_test
 
-
-#     # convert results in csv files
-#     ## train
-#     res_train = pd.concat([X_train, y_train], axis=1)
-#     print(f"Saving to {out_filename}_train.csv")
-#     res_train.to_csv(f"{out_filename}_train.csv", index=False)
-#     ## test
-#     res_test = pd.concat([X_test, y_test], axis=1)
-#     print(f"Saving to {out_filename}_test.csv")
-#     res_test.to_csv(f"{out_filename}_test.csv", index=False)
-#     ## val
-#     res_val = pd.concat([X_val, y_val], axis=1)
-#     print(f"Saving to {out_filename}_val.csv")
-#     res_val.to_csv(f"{out_filename}_val.csv", index=False)
+    # # convert results in csv files
+    # ## train
+    # res_train = pd.concat([X_train, y_train], axis=1)
+    # print(f"Saving to {out_filename}_train.csv")
+    # res_train.to_csv(f"{out_filename}_train.csv", index=False)
+    # ## test
+    # res_test = pd.concat([X_test, y_test], axis=1)
+    # print(f"Saving to {out_filename}_test.csv")
+    # res_test.to_csv(f"{out_filename}_test.csv", index=False)
+    # ## val
+    # res_val = pd.concat([X_val, y_val], axis=1)
+    # print(f"Saving to {out_filename}_val.csv")
+    # res_val.to_csv(f"{out_filename}_val.csv", index=False)
 
 
 if __name__ == "__main__":
@@ -217,7 +227,7 @@ if __name__ == "__main__":
     parser.add_argument('--n_samples', type=int, help='Number of samples per class (defaults to -1, which means undersampling to size of least common class)', default=-1)
     parser.add_argument('--binary', action='store_true', help='Group data into two classes (0, 1)', default=False)
     parser.add_argument('--smote', action='store_true', help='Use SMOTE oversampling (to be finished)', default=False)
-    parser.add_argument('--split', action='store_true', help='Start the train_test_val split', default=False)
+    parser.add_argument('--val_split', action='store_true', help='Split in train/val/test (default train/test)', default=False)
     parser.add_argument('--drop_classes', nargs='+', choices=['N', 'F', 'Q', 'S', 'V'], help='List of classes to drop (N, F, Q, S, V)', default=[])
     parser.add_argument("--output_dir", type=str, default=os.getcwd(), help="Path to save the results")
     parser.add_argument("--scaler_name", type=str, default="MeanVariance", help="Scaler to be used (default MeanVariance)")
@@ -248,10 +258,20 @@ if __name__ == "__main__":
 
     print(f"Using final config:\n{config}")
     df = df_from_bucket() if args.from_bucket else pd.read_csv(args.filename)
-    df_tr, df_te = preproc(df,
-                           n_samples=config['n_samples'], drop_classes=config['drop_classes'],
-                           binary=config['binary'], smote=config['smote'],
-                           scaler_name=config['scaler_name'], split=config['split'])
+
+    dfs = preproc(df,
+                  n_samples=config['n_samples'], drop_classes=config['drop_classes'],
+                  binary=config['binary'], smote=config['smote'],
+                  scaler_name=config['scaler_name'], split=config['val_split'])
+
+
+    if config['val_split']:
+        df_tr, df_va, df_te = dfs
+    else:
+        df_tr, df_te = dfs
+
+
+
 
     # Save to csv
     # out_filename = prepare_filename(args)
@@ -260,3 +280,5 @@ if __name__ == "__main__":
     print(f'Saving to {out_filename}_train.csv and {out_filename}_test.csv')
     df_tr.to_csv(f"{out_filename}_train.csv", index=False)
     df_te.to_csv(f"{out_filename}_test.csv", index=False)
+    if config['val_split']:
+        df_va.to_csv(f"{out_filename}_val.csv", index=False)
