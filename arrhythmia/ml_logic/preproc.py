@@ -91,20 +91,28 @@ def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, val_sp
     else:
         print(f'Preprocess dropping {drop_classes} class(es)')
     if binary:
-        print("Preparing two class file.")
+        print("Preparing binary.")
 
     # Dropping redundant index
     df.drop(columns=['Unnamed: 0'], inplace=True)
 
-    # Original encoding of the classes
-    enc = {'F': 0, 'N': 1, 'Q': 2, 'S': 3, 'V': 4}
+    # Have 0 as the normal class, because in raw dataset N: 1
+    replace = {1: 0, 0: 1}
+    df['target'] = df['target'].apply(lambda x: replace[x] if x in replace else x)
+    # Encoding of classes
+    enc = {'N': 0, 'F': 1, 'Q': 2, 'S': 3, 'V': 4}
+    inv_enc = {v: k for k, v in enc.items()}
     #drop rows where target is in drop_classes (using loc for proper assignment)
     enc_drop_classes = [enc[c] for c in drop_classes]
     df = df.loc[~df['target'].isin(enc_drop_classes)].reset_index(drop=True)
 
-    # Have 0 as the normal class
-    replace = {1: 0, 0: 1}
-    df['target'] = df['target'].apply(lambda x: replace[x] if x in replace else x)
+    # Mapping of classes:
+    unique_classes = sorted(df['target'].unique())
+    mapping = {old: new for new, old in enumerate(unique_classes)}
+    df['target'] = df['target'].apply(lambda x: mapping[x])
+    print("Mapping:")
+    for old, new in mapping.items():
+        print(f"{inv_enc[old]} -> {new}")
 
     # group data into two classes if binary is True, i.e.1 would group all classes that are not zero
     if binary:
