@@ -10,7 +10,7 @@ import argparse, os, io, json
 from google.cloud import storage
 
 def df_from_bucket(bucket_name='arrhythmia_raw_data', file_name='MIT-BIH_raw.csv', key_path='/home/fabricio/arrhythmia-442911-3fe797ff4111.json'):
-    
+
     print(f'Getting {file_name} from {bucket_name} gcp bucket.')
     # Set the environment variable for the service account key
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = key_path
@@ -82,14 +82,14 @@ def pandasify(X, y, ts_features):
 
 def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, split=False,
             scaler_name='MeanVariance'):
-    
+
     # Create a copy to avoid funny errors
     df = df.copy()
-    
-    if args.drop_classes == []:
+
+    if drop_classes == []:
         print('Preprocess keeping all classes')
     else:
-        print(f'Preprocess dropping {args.drop_classes} class(es)')
+        print(f'Preprocess dropping {drop_classes} class(es)')
     if binary:
         print("Preparing two class file.")
 
@@ -123,7 +123,7 @@ def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, split=
         pass
     else:
         X, y = undersample(X, y, n_samples)
-        
+
     print('Resulting features shape', X.shape)
     print('Resulting target shape', y.shape)
 
@@ -136,7 +136,7 @@ def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, split=
     else:
         print(f"Error: {scaler_name} not known.")
         return
-    # No data leakage doing fit_transform before split 
+    # No data leakage doing fit_transform before split
     # as tslearn acts on each time series independently
     X = scaler.fit_transform(X)
 
