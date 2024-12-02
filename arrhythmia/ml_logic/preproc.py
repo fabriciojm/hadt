@@ -27,15 +27,18 @@ def df_from_bucket(bucket_name='arrhythmia_raw_data', file_name='MIT-BIH_raw.csv
     df = pd.read_csv(io.BytesIO(content))
     return df
 
-def make_save_label_encoding(y, path):
+def label_encoding(dfs, path):
+    # dfs is a list of dataframes because it could be train/test or train/val/test
     le = LabelEncoder()
-    y = le.fit_transform(y)
+    le.fit(pd.concat(dfs, axis=0).target)
+    for df in dfs:
+        df['target'] = le.transform(df.target)
     mapping = dict(zip(le.classes_, range(len(le.classes_))))
     with open(path, "wb") as f:
         pickle.dump(mapping, f)
     print('Encoding:', mapping)
     print(f"Encoding saved to '{path}'")
-    return pd.Series(y, name='target')
+    return dfs
 
 def apply_smote(X, y):
     pass
