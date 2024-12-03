@@ -1,6 +1,13 @@
 from fastapi import FastAPI
 from arrhythmia.ml_logic.binary.cnn import apply_cnn
 from arrhythmia.ml_logic.preproc import preproc
+from tensorflow.keras import models
+from tensorflow.keras import Sequential, layers
+import pandas as pd
+from sklearn.model_selection import train_test_split
+import numpy as np
+from arrhythmia.ml_logic.binary.cnn import initialize_model
+from tensorflow.keras.callbacks import EarlyStopping
 
 app = FastAPI()
 
@@ -11,29 +18,9 @@ def root():
 # app.state.model.predict()
 # app.state.model = apply_cnn()
 
-
-# def initialize_model(X_train):
-    model = models.Sequential()
-
-    model.add(layers.Conv1D(8,3, activation='relu', input_shape=X_train.shape[1:]))
-
-    model.add(layers.Conv1D(16,3, activation='relu'))
-    model.add(layers.MaxPooling1D(2))
-    model.add(layers.Flatten())
-
-    model.add(layers.Dense(32, activation='relu'))
-
-    model.add(layers.Dense(1,activation='sigmoid'))
-
-    model.compile(loss='binary_crossentropy',
-                optimizer=optimizers.Adam(),
-                metrics=['accuracy','recall','precision'])
-    return model
-
 # @app.get("/predict")
 # # Let's use our model
-# def predict(filename):
-
+def predict(filename):
     data = pd.read_csv(filename)
     X,y = data.drop(columns=['Unnamed: 0','target']),data.target
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
