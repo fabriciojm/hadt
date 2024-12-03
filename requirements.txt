@@ -1,7 +1,13 @@
 pandas==2.2.3
 matplotlib
-numpy
+numpy==1.26.4
 tensorflow
 scikit-learn
 fastdtw
 streamlit
+xgboost
+h5py
+dtaidistance==2.3.12
+tslearn
+imblearn
+google-cloud-storage
