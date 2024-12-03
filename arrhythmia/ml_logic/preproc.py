@@ -97,7 +97,7 @@ def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, val_sp
     df = df.loc[~df['target'].isin(enc_drop_classes)].reset_index(drop=True)
     df['target'] = df['target'].apply(lambda x: inv_enc[x])
 
-    # group data into two classes if binary 
+    # group data into two classes if binary
     if binary:
         df['target'] = df['target'].apply(lambda x: 'A' if x != 'N' else 'N')
 
