@@ -65,11 +65,33 @@ def apply_cnn(filename):
 
     print(classification_report(y_test, y_pred))
 
+# def save_model(model: keras.Model = None) -> None:
 
-if __name__=="__main__":
- #   apply_cnn(../../../)
-    rootpath=(os.path.dirname(__file__)) #print(os.getcwd())
-    relativepath="../../../raw_data/MIT-BIH_binary_4classes.csv"
-    csv_path=os.path.join(rootpath,relativepath)
-    print(csv_path)
-    print(apply_cnn(csv_path))
+#     if MODEL_TARGET == "gcs":
+#             # 🎁 We give you this piece of code as a gift. Please read it carefully! Add a breakpoint if needed!
+
+#             model_filename = model_path.split("/")[-1] # e.g. "20230208-161047.h5" for instance
+#             client = storage.Client()
+#             bucket = client.bucket(BUCKET_NAME)
+#             blob = bucket.blob(f"models/{model_filename}")
+#             blob.upload_from_filename(model_path)
+
+#             print("✅ Model saved to GCS")
+#             return None
+
+#     if MODEL_TARGET == "mlflow":
+#         mlflow.tensorflow.log_model(
+#             model=model,
+#             artifact_path="model",
+#             registered_model_name=MLFLOW_MODEL_NAME
+#         print("✅ Model saved to MLflow")
+#         return None
+#     return None
+
+# if __name__=="__main__":
+#  #   apply_cnn(../../../)
+#     rootpath=(os.path.dirname(__file__)) #print(os.getcwd())
+#     relativepath="../../../raw_data/MIT-BIH_binary_4classes.csv"
+#     csv_path=os.path.join(rootpath,relativepath)
+#     print(csv_path)
+#     print(apply_cnn(csv_path))
