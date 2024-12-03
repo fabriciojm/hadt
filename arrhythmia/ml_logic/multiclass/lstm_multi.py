@@ -7,6 +7,7 @@ from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.metrics import classification_report, confusion_matrix
+import time
 
 
 from arrhythmia.ml_logic.preproc import preproc, df_from_bucket, label_encoding
@@ -25,13 +26,13 @@ def train_model(model, df_tr):
     X_tr, y_tr = df_tr.drop(columns='target'), df_tr.target
     X_tr = np.expand_dims(X_tr, axis = 1)
     y_tr_ohe = to_categorical(y_tr)
-    
+
     es = EarlyStopping(patience = 10, restore_best_weights=True)
     history = model.fit(X_tr, y_tr_ohe,
                         epochs=100, batch_size=256,
                         validation_split=0.2,
                         callbacks=[es])
-    
+
     return model, history
 
 def save_model(model, path):
@@ -55,8 +56,12 @@ if __name__ == "__main__":
     df = pd.read_csv('../arrhythmia_raw_data/MIT-BIH_raw.csv')
     df_tr, df_te = preproc(df, drop_classes=['F'])
     df_tr, df_te = label_encoding([df_tr, df_te], '/home/fabricio/lstm_multi_label_encoding.pkl')
+    t_start = time.time()
     model = initialize_model()
     model = compile_model(model)
     model, history = train_model(model, df_tr)
+    t_end = time.time()
+    print(f"It took {t_end - t_start} seconds for the model to make this prediction.")
+
     save_model(model, '/home/fabricio/lstm_multi_model.h5')
     evaluate_model(model, df_te)
