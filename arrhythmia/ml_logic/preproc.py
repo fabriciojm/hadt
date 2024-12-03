@@ -27,39 +27,21 @@ def df_from_bucket(bucket_name='arrhythmia_raw_data', file_name='MIT-BIH_raw.csv
     df = pd.read_csv(io.BytesIO(content))
     return df
 
-def make_save_label_encoding(y, path):
+def label_encoding(dfs, path):
+    # dfs is a list of dataframes because it could be train/test or train/val/test
     le = LabelEncoder()
-    y = le.fit_transform(y)
+    le.fit(pd.concat(dfs, axis=0).target)
+    for df in dfs:
+        df['target'] = le.transform(df.target)
     mapping = dict(zip(le.classes_, range(len(le.classes_))))
     with open(path, "wb") as f:
         pickle.dump(mapping, f)
     print('Encoding:', mapping)
     print(f"Encoding saved to '{path}'")
-    return pd.Series(y, name='target')
+    return dfs
 
 def apply_smote(X, y):
     pass
-    # # This function is not working
-    # smote = SMOTE(random_state=42)
-    # X_resampled, y_resampled = smote.fit_resample(X_reshaped, y)
-
-    # # Reshape back to time series format
-    # X_resampled = X_resampled.reshape(-1, 180)
-    # X = X.reshape(-1, 180)
-
-    # # Convert back to dataframe
-    # X = pd.DataFrame(X, columns=df.drop(columns='target').columns)
-    # y = pd.Series(y, name='target')
-    # X_resampled = pd.DataFrame(X_resampled, columns=df.drop(columns='target').columns)
-    # y_resampled = pd.Series(y_resampled, name='target')
-
-    # # Shuffle order
-    # rand_idx = np.random.permutation(X_resampled.index)
-    # X_resampled = X_resampled.loc[rand_idx].reset_index(drop=True)
-    # y_resampled = y_resampled.loc[rand_idx].reset_index(drop=True)
-
-    # return X_resampled, y_resampled
-
 
 def undersample(X, y, n_samples):
     # if n_samples is -1, undersampling to size of least common class
@@ -107,28 +89,17 @@ def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, val_sp
     # Dropping redundant index
     df.drop(columns=['Unnamed: 0'], inplace=True)
 
-    # Have 0 as the normal class, because in raw dataset N: 1
-    # replace = {1: 0, 0: 1}
-    # df['target'] = df['target'].apply(lambda x: replace[x] if x in replace else x)
     # Original encoding of classes in MIT-BIH .csv
     enc = {'N': 1, 'F': 0, 'Q': 2, 'S': 3, 'V': 4}
     inv_enc = {v: k for k, v in enc.items()}
-    # #drop rows where target is in drop_classes (using loc for proper assignment)
+    # Drop rows where target is in drop_classes (using loc for proper assignment)
     enc_drop_classes = [enc[c] for c in drop_classes]
     df = df.loc[~df['target'].isin(enc_drop_classes)].reset_index(drop=True)
     df['target'] = df['target'].apply(lambda x: inv_enc[x])
 
-    # Mapping of classes:
-    # unique_classes = sorted(df['target'].unique())
-    # mapping = {old: new for new, old in enumerate(unique_classes)}
-    # df['target'] = df['target'].apply(lambda x: mapping[x])
-    # print("Mapping:")
-    # for old, new in mapping.items():
-    #     print(f"{inv_enc[old]} -> {new}")
-
-    # group data into two classes if binary is True, i.e.1 would group all classes that are not zero
+    # group data into two classes if binary 
     if binary:
-        df['target'] = df['target'].apply(lambda x: 'N' if x == 1 else 'A')
+        df['target'] = df['target'].apply(lambda x: 'A' if x != 'N' else 'N')
 
     # Reshape data for tslearn (samples, timestamps, features)
     X = to_time_series_dataset(df.drop(columns=['target']))
@@ -137,16 +108,13 @@ def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, val_sp
     # Reshape
     X = X.reshape(X.shape[0], -1)
 
-
     # Balance classes
     if smote:
         pass
     else:
         X, y = undersample(X, y, n_samples)
 
-
     # Scale the time series, split
-
     if scaler_name == "MeanVariance":
         scaler = TimeSeriesScalerMeanVariance()
     elif scaler_name == "MinMax":
@@ -154,7 +122,6 @@ def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, val_sp
     else:
         print(f"Error: {scaler_name} not known.")
         return
-    # X = scaler.fit_transform(X)
 
     # train_test_split, scale
     if val_split:
@@ -182,8 +149,6 @@ def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, val_sp
     else:
         return df_tr, df_te
 
-    # if split == True:
-        # split_data(res, test_size_test=0.2, test_size_val=0.2, out_filename=out_filename)
 
 def prepare_filename(**kwargs):
     # Extract required arguments from kwargs
@@ -210,11 +175,7 @@ def prepare_filename(**kwargs):
     return out_filename
 
 
-# def split_data(df, test_size_test=0.2, test_size_val=0.2, out_filename="split-data"):
 def val_split_data(X, y, test_size_test=0.2, test_size_val=0.2):
-    # X = df.drop(columns="target")
-    # y = df.target
-    # train_test split
     X_train_temp, X_test, y_train_temp, y_test = train_test_split(
         X, y,
         test_size=test_size_test,
@@ -227,21 +188,6 @@ def val_split_data(X, y, test_size_test=0.2, test_size_val=0.2):
         random_state=42
     )
     return X_train, X_val, X_test, y_train, y_val, y_test
-
-    # # convert results in csv files
-    # ## train
-    # res_train = pd.concat([X_train, y_train], axis=1)
-    # print(f"Saving to {out_filename}_train.csv")
-    # res_train.to_csv(f"{out_filename}_train.csv", index=False)
-    # ## test
-    # res_test = pd.concat([X_test, y_test], axis=1)
-    # print(f"Saving to {out_filename}_test.csv")
-    # res_test.to_csv(f"{out_filename}_test.csv", index=False)
-    # ## val
-    # res_val = pd.concat([X_val, y_val], axis=1)
-    # print(f"Saving to {out_filename}_val.csv")
-    # res_val.to_csv(f"{out_filename}_val.csv", index=False)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Preprocess the data, perform class balance')
@@ -269,17 +215,6 @@ if __name__ == "__main__":
         if value is not None:  # Override if CLI argument is provided
             config[key] = value
 
-    # print(f"Using scaler {args.scaler_name}")
-
-    # X_tr, X_te, y_tr, y_te = preproc(args.filename,
-    #     n_samples=args.n_samples,
-    #     drop_classes=args.drop_classes,
-    #     binary=args.binary,
-    #     smote=args.smote,
-    #     output_dir=args.output_dir,
-    #     scaler_name=args.scaler_name)
-    #         # split=args.split)
-
     print(f"Using final config:\n{config}")
     df = df_from_bucket() if args.from_bucket else pd.read_csv(args.filename)
 
@@ -294,13 +229,8 @@ if __name__ == "__main__":
     else:
         df_tr, df_te = dfs
 
-
-
-
     # Save to csv
-    # out_filename = prepare_filename(args)
     out_filename = prepare_filename(**config)
-    # out_filename += '.csv'
     print(f'Saving to {out_filename}_train.csv and {out_filename}_test.csv')
     df_tr.to_csv(f"{out_filename}_train.csv", index=False)
     df_te.to_csv(f"{out_filename}_test.csv", index=False)
