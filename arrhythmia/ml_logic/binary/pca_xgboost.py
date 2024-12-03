@@ -3,8 +3,9 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from xgboost import XGBClassifier
-from arrhythmia.ml_logic.preproc import preproc
+from arrhythmia.ml_logic.preproc import preproc, label_encoding
 from sklearn.metrics import classification_report
+import time
 
 def pca(X_train, X_test, k):
     # compute the principal components
@@ -42,10 +43,14 @@ if __name__ == "__main__":
     raw_data = pd.read_csv("../../../raw_data/MIT-BIH.csv")
     data_train, data_test = preproc(raw_data, drop_classes=["F"], n_samples=10000, binary=True)
     # data_train = pd.read_csv("../../../raw_data/MIT-BIH_raw_binary_dropF_train.csv")
+    data_train, data_test = label_encoding([data_train, data_test], '/home/chlouette/code/fabriciojm/arrhythmia/arrhythmia/ml_logic/pickles/pca_xgboost_binary_label_encoding.pkl')
     X_train = data_train.drop(columns="target")
     y_train = data_train.target
     # X_test = pd.read_csv("../../../raw_data/MIT-BIH_raw_binary_dropF_test.csv").drop(columns="target")
     X_test = data_test.drop(columns="target")
     y_test = data_test.target
+    t_start = time.time()
     y_pred = main(X_train, X_test, y_train, k=8)
+    t_end = time.time()
     print(classification_report(y_test, y_pred))
+    print(f"It took {t_end - t_start} seconds for the model to make this prediction.")
