@@ -6,6 +6,8 @@ from xgboost import XGBClassifier
 from arrhythmia.ml_logic.preproc import preproc, label_encoding
 from sklearn.metrics import classification_report
 import time
+import pickle
+
 
 # def convert(y):
 #     '''function to convert y in the format expected by XGBClassifier'''
@@ -32,6 +34,10 @@ def pca(X_train, X_test, k):
     X_train_proj = pd.DataFrame(pca_k.transform(X_train), columns=[f'PC{i}' for i in range(1,k+1)])
     X_test_proj = pd.DataFrame(pca_k.transform(X_test), columns=[f'PC{i}' for i in range(1,k+1)])
     print("pca done!")
+    file_pca = "/home/fabricio/pca_multiclass.pkl"
+    with open(file_pca, "wb") as file:
+        pickle.dump(pca_k, file)
+    print('PCA file saved in ', file_pca)
     return X_train_proj, X_test_proj
 
 def fit_xgboost(X_train, y_train):
@@ -54,16 +60,21 @@ def main(X_train, X_test, y_train, k=10):
     X_train_proj, X_test_proj = pca(X_train, X_test, k)
     # fit
     model = fit_xgboost(X_train_proj, y_train)
+    # Save the XGBoost model to a .pkl file
+    with open("/home/fabricio/pca_xgboost_multiclass.pkl", "wb") as file:
+        pickle.dump(model, file)
     # predict
     y_pred = predict_xgboost(model, X_test_proj)
     return y_pred
 
 # main function
 if __name__ == "__main__":
-    raw_data = pd.read_csv("../../../raw_data/MIT-BIH.csv")
+    # raw_data = pd.read_csv("../../../raw_data/MIT-BIH.csv")
+    raw_data = pd.read_csv("/home/fabricio/arrhythmia_raw_data/MIT-BIH_raw.csv")
     data_train, data_test = preproc(raw_data, drop_classes=["F"], binary=False)
     # data_train = pd.read_csv("../../../raw_data/MIT-BIH_raw_dropF_train.csv")
-    data_train, data_test = label_encoding([data_train, data_test], '/home/chlouette/code/fabriciojm/arrhythmia/arrhythmia/ml_logic/pickles/pca_xgboost_multiclass_label_encoding.pkl')
+    # data_train, data_test = label_encoding([data_train, data_test], '/home/chlouette/code/fabriciojm/arrhythmia/arrhythmia/ml_logic/pickles/pca_xgboost_multiclass_label_encoding.pkl')
+    data_train, data_test = label_encoding([data_train, data_test], '/home/fabricio/pca_xgboost_multiclass_label_encoding.pkl')
     X_train = data_train.drop(columns="target")
     y_train = data_train.target
     # X_test = pd.read_csv("../../../raw_data/MIT-BIH_raw_dropF_test.csv").drop(columns="target")
