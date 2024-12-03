@@ -27,13 +27,13 @@ def predict_dtw_dtaidistance(X_tr, y_tr, test_sample, window=10):
 
 
 def main(args):
-    filename_train = args.filename_train    
+    filename_train = args.filename_train
     filename_test = args.filename_test
     print(f"Processing files: \n {filename_train} \n {filename_test}")
-    
+
     df_train = pd.read_csv(filename_train)
     df_test = pd.read_csv(filename_test)
-    
+
     X_tr = df_train.drop(columns='target')
     y_tr = df_train['target']
     X_te = df_test.drop(columns='target')
@@ -63,7 +63,7 @@ def main(args):
             delayed(predict_dtw_dtaidistance)(X_tr, y_tr, test_sample)
             for test_sample in X_te.itertuples()
         )
-        print(classification_report(y_te, y_pred))
+        print(classification_report(y_te, y_pred, digits=4))
         print(confusion_matrix(y_te, y_pred))
         #save results
         results = pd.DataFrame({'y_true': y_te, 'y_pred': y_pred})
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     parser.add_argument("filename_train", type=str, help="Path to the preprocessed training data file")
     parser.add_argument("filename_test", type=str, help="Path to the preprocessed test data file")
     parser.add_argument("--windows", type=int, default=[10], nargs='+', help="Window size(s) for DTW")
-    parser.add_argument("--n_jobs", type=int, default=-1, help="Number of jobs for parallel processing")    
+    parser.add_argument("--n_jobs", type=int, default=-1, help="Number of jobs for parallel processing")
     parser.add_argument("--small_run", action="store_true", help="Run a small version of the experiment")
     parser.add_argument("--train_samples", type=int, default=None, help="Number of training samples to use (none given = use all)")
     parser.add_argument("--test_samples", type=int, default=None, help="Number of test samples to use (none given = use all)")

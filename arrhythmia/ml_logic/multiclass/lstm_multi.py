@@ -25,13 +25,13 @@ def train_model(model, df_tr):
     X_tr, y_tr = df_tr.drop(columns='target'), df_tr.target
     X_tr = np.expand_dims(X_tr, axis = 1)
     y_tr_ohe = to_categorical(y_tr)
-    
+
     es = EarlyStopping(patience = 10, restore_best_weights=True)
     history = model.fit(X_tr, y_tr_ohe,
                         epochs=100, batch_size=256,
                         validation_split=0.2,
                         callbacks=[es])
-    
+
     return model, history
 
 def save_model(model, path):
@@ -43,7 +43,7 @@ def evaluate_model(model, df_te):
     y_te_ohe = to_categorical(y_te)
     y_pred = model.predict(X_te)
     y_pred = np.argmax(y_pred, axis=1)
-    print(classification_report(y_te, y_pred))
+    print(classification_report(y_te, y_pred, digits=4))
     print(confusion_matrix(y_te, y_pred))
     return model.evaluate(X_te, y_te_ohe)
 
