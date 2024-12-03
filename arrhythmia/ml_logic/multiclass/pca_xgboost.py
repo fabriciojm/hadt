@@ -72,5 +72,5 @@ if __name__ == "__main__":
     t_start = time.time()
     y_pred = main(X_train, X_test, y_train, k=10)
     t_end = time.time()
-    print(classification_report(y_test, y_pred))
+    print(classification_report(y_test, y_pred, digits=4))
     print(f"It took {t_end - t_start} seconds for the model to make this prediction.")
