@@ -131,8 +131,10 @@ def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, val_sp
 
     # group data into two classes if binary is True, i.e.1 would group all classes that are not zero
     if binary:
-        df['target'] = df['target'].apply(lambda x: 'N' if x == 1 else 'A')
+        print('before:', df['target'].unique())
+        df['target'] = df['target'].apply(lambda x: 'A' if x != 'N' else 'N')
 
+    print('Classes in resulting dataframe:', df['target'].unique())
     # Reshape data for tslearn (samples, timestamps, features)
     X = to_time_series_dataset(df.drop(columns=['target']))
     y = df['target'].values
