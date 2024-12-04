@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
+import time
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
@@ -50,8 +51,12 @@ if __name__ == "__main__":
     df = pd.read_csv('../arrhythmia_raw_data/MIT-BIH_raw.csv')
     df_tr, df_te = preproc(df, drop_classes=['F'], binary=True)
     df_tr, df_te = label_encoding([df_tr, df_te], '/home/fabricio/lstm_binary_label_encoding.pkl')
+    t_start = time.time()
+
     model = initialize_model()
     model = compile_model(model)
     model, history = train_model(model, df_tr)
+    t_end = time.time()
+    print(f"It took {t_end - t_start} seconds for the model to make this prediction.")
     save_model(model, '/home/fabricio/lstm_binary_model.h5')
     evaluate_model(model, df_te)

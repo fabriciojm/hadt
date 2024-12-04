@@ -73,6 +73,29 @@ def pandasify(X, y, ts_features):
     y = pd.Series(y, name='target')
     return pd.concat([X, y], axis=1)
 
+def preproc_xgb_single(filepath, pca_model_path="/home/fabricio/pca_multiclass.pkl", scaler_name='MeanVariance'):
+    X = pd.read_csv(filepath)
+    if X.shape != (1, 180):
+        print('File shape is not (1, 180) but ', X.shape, '. Exiting')
+        return
+
+    X = to_time_series_dataset(X)
+    X = X.reshape(X.shape[0], -1)
+    if scaler_name == "MeanVariance":
+        scaler = TimeSeriesScalerMeanVariance()
+    elif scaler_name == "MinMax":
+        scaler = TimeSeriesScalerMinMax()
+    else:
+        print(f"Error: {scaler_name} not known.")
+        return
+    X = scaler.fit_transform(X)
+
+    with open(pca_model_path, "rb") as file:
+        pca = pickle.load(file)
+    shape = X.shape
+    X = pca.transform(X.reshape(1, 180))
+    return X
+
 def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, val_split=False,
             scaler_name='MeanVariance'):
 
