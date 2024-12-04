@@ -1,24 +1,28 @@
 from google.cloud import storage
-from params import *
+from arrhythmia.api.params import *
 import pickle
+from tensorflow import keras
 
 def load_model():
     client = storage.Client(project=GCP_PROJECT)
     bucket = client.get_bucket(BUCKET_NAME_MODELS)
 
     blobs = list(bucket.list_blobs(prefix="production/pca_xgboost"))
-    # try :
-    blob = max(blobs, key=lambda x: x.updated)
-    latest_model_path_to_save = os.path.join(LOCAL_REGISTRY_PATH, blob.name)
-    blob.download_to_filename(latest_model_path_to_save)
-    latest_model = pickle.load(latest_model_path_to_save)
-    print(latest_model)
-    #     print("✅ Latest model downloaded from cloud storage")
-    #     return latest_model
-    # except:
-        # print(f"\n❌ No model found in GCS bucket {BUCKET_NAME}")
+    try :
+        blob = max(blobs, key=lambda x: x.updated)
+        latest_model_path_to_save = os.path.join(LOCAL_REGISTRY_PATH, blob.name)
+        blob.download_to_filename(latest_model_path_to_save)
 
-        # return None
+        with open(latest_model_path_to_save, "rb") as m :
+            latest_model = pickle.load(m)
+            print("✅ Latest model downloaded from cloud storage")
+            print(latest_model)
+
+        return latest_model
+
+    except Exception as e:
+        print('Error : Could not load  :', e)
+
 
 if __name__ == "__main__":
     load_model()

@@ -1,10 +1,9 @@
 from fastapi import FastAPI
-from arrhythmia.ml_logic.binary.cnn import apply_cnn
-from arrhythmia.ml_logic.preproc import preproc
+# import pickle
 import pandas as pd
 import numpy as np
 from utils_gcp import load_model
-from preprocess import preproc
+from preprocess import preproc_xgb_single, label_encoding
 
 app = FastAPI()
 app.state.model = load_model()
@@ -14,17 +13,15 @@ def root():
     return dict(greeting="Hello")
 
 @app.post("/predict")
-def predict(filename):
+def predict(filepath_csv):
     model = app.state.model
     if not model:
         model = app.state.model = load_model()
+    print(model)
 
-    # PREPROCESS
-    data = pd.read_csv(filename)
-    X_proc = preproc(data)
+    df = preproc_xgb_single(filepath=filepath_csv, pca_model_path="production/pca.pkl")
+    y_pred = model.predict(df)
 
-    # PREDICT
-    y_pred = model.predict(X_proc)
+    # decoding using preproc.py decode
 
-    # CHECK THE RIGHT FORMAT TO RETURN
     return y_pred

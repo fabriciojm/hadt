@@ -16,7 +16,7 @@ def initialize_model():
     model = models.Sequential()
 
     # model.add(layers.Conv1D(8,3, activation='relu', input_shape=X_train.shape[1:]))
-    model.add(layers.Conv1D(8,3, activation='relu',))
+    model.add(layers.Conv1D(8,3, activation='relu', input_shape=(180, 1)))
 
     model.add(layers.Conv1D(16,3, activation='relu'))
     model.add(layers.MaxPooling1D(2))
