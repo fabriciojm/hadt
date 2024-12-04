@@ -167,6 +167,7 @@ cython_debug/
 raw_data/
 *.csv
 *.pkl
+*.json
 
 # Mac OS
 .DS_Store

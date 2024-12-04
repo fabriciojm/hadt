@@ -10,3 +10,5 @@ dtaidistance==2.3.12
 tslearn
 imblearn
 google-cloud-storage
+lightgbm #libomp on mac
+python-multipart
