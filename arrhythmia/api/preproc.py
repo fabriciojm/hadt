@@ -1,5 +1,5 @@
-import pandas as pd, numpy as np, seaborn as sns
-import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
 from tslearn.preprocessing import TimeSeriesScalerMinMax, TimeSeriesScalerMeanVariance
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
