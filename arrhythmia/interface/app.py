@@ -3,8 +3,14 @@ import pandas as pd
 import requests
 import numpy as np
 
+st.set_page_config(
+    page_title="Arrhythmia",
+    page_icon="❤️",
+    layout="centered",
+    initial_sidebar_state="auto")
+
 '''
-# 🫀🥼
+# ❤️🫀🥼
 '''
 
 st.markdown('''
@@ -32,7 +38,7 @@ if uploaded_file is not None:
     data = df.head(1).T
     st.line_chart(data[0])
 
-## Button to classify heartbeats
-# st.button("Start", type="primary")
-if st.button("Start"):
-    st.write("Loading...")
+    ## Button to classify heartbeats
+    # st.button("Start", type="primary")
+    if st.button("Start prediction"):
+        st.write("Loading...")
