@@ -1,9 +1,6 @@
 from fastapi import FastAPI
-# import pickle
-import pandas as pd
-import numpy as np
 from utils_gcp import load_model
-from preprocess import preproc_xgb_single, label_encoding
+from preprocess import preproc_xgb_single
 
 app = FastAPI()
 app.state.model = load_model()
