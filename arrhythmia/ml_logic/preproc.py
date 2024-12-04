@@ -40,6 +40,15 @@ def label_encoding(dfs, path):
     print(f"Encoding saved to '{path}'")
     return dfs
 
+def label_decoding(value, path):
+    """
+    path is a file path for the encoding dictionary
+    """
+    with open(path, "rb") as f:
+        mapping = pickle.load(f)
+    inverse_mapping = {v: k for k, v in mapping.items()}
+    return inverse_mapping[value]
+
 def apply_smote(X, y):
     pass
 
@@ -72,6 +81,8 @@ def pandasify(X, y, ts_features):
     X = pd.DataFrame(X.squeeze(), columns=ts_features)
     y = pd.Series(y, name='target')
     return pd.concat([X, y], axis=1)
+
+
 
 def preproc_xgb_single(filepath, pca_model_path="/home/fabricio/pca_multiclass.pkl", scaler_name='MeanVariance'):
     X = pd.read_csv(filepath)
