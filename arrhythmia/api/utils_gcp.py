@@ -1,7 +1,6 @@
 from google.cloud import storage
 from arrhythmia.api.params import *
 import pickle
-from tensorflow import keras
 
 def load_model():
     client = storage.Client(project=GCP_PROJECT)
@@ -16,7 +15,6 @@ def load_model():
         with open(latest_model_path_to_save, "rb") as m :
             latest_model = pickle.load(m)
             print("✅ Latest model downloaded from cloud storage")
-            print(latest_model)
 
         return latest_model
 
