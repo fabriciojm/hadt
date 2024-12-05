@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 import numpy as np
+import time
 
 st.set_page_config(
     page_title="Arrhythmia",
@@ -39,4 +40,7 @@ if uploaded_file is not None:
     ## Button to classify heartbeats
     # st.button("Start", type="primary")
     if st.button("Start prediction"):
-        st.write("Loading...")
+        # st.spinner('Loading...')
+        with st.spinner('Loading...'):
+            time.sleep(2)
+        st.success("This is an 'S' heartbeat.")
