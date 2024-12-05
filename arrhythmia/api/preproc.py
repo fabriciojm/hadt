@@ -1,5 +1,5 @@
-import pandas as pd, numpy as np, seaborn as sns
-import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
 from tslearn.preprocessing import TimeSeriesScalerMinMax, TimeSeriesScalerMeanVariance
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
@@ -84,12 +84,10 @@ def pandasify(X, y, ts_features):
 
 
 
-def preproc_xgb_single(filepath, pca_model_path="/home/fabricio/pca_multiclass.pkl", scaler_name='MeanVariance'):
-    X = pd.read_csv(filepath)
+def preproc_xgb_single(X, pca_model_path="/home/fabricio/pca_multiclass.pkl", scaler_name='MeanVariance'):
     if X.shape != (1, 180):
         print('File shape is not (1, 180) but ', X.shape, '. Exiting')
         return
-
     X = to_time_series_dataset(X)
     X = X.reshape(X.shape[0], -1)
     if scaler_name == "MeanVariance":
