@@ -30,7 +30,7 @@ To install Arrhythmia, follow these steps:
 1. Ensure you have Python 3.8 or higher installed
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/arrhythmia.git
+git clone https://github.com/fabriciojm/arrhythmia.git
 cd arrhythmia
 ```
 
