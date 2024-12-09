@@ -5,6 +5,8 @@ Heart Arrhythmia Detection Tools
 hadt is a Python-based tool that analyzes ECG signals to detect and classify abnormal heartbeats.
 It uses various machine learning algorithms to identify various types of arrhythmias using the [MIT-BIH Arrhythmia Database](https://physionet.org/content/mitdb/1.0.0/).
 
+## Acknowledgements
+
 This project was originally pitched and selected for development as one of the final student projects for Le Wagon's Data Science Bootcamp.
 The original version can be visited in the [arrhythmia](https://github.com/fabriciojm/arrhythmia) repository.
 
