@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from xgboost import XGBClassifier
-from arrhythmia.ml_logic.preproc import preproc, label_encoding
+from hadt.ml_logic.preproc import preproc, label_encoding
 from sklearn.metrics import classification_report
 import time
 import pickle

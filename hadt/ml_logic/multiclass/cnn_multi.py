@@ -9,8 +9,7 @@ from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.metrics import classification_report
 from tensorflow.keras.utils import to_categorical
 import os
-from arrhythmia.ml_logic.preproc import preproc
-from arrhythmia.ml_logic.preproc import label_encoding
+from hadt.ml_logic.preproc import preproc, label_encoding
 
 def initialize_model():
         #Initialize the model

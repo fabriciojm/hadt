@@ -8,8 +8,8 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.metrics import classification_report
 import os
-from arrhythmia.ml_logic.preproc import preproc
-from arrhythmia.ml_logic.preproc import label_encoding
+from hadt.ml_logic.preproc import preproc
+from hadt.ml_logic.preproc import label_encoding
 
 
 def initialize_model():
@@ -40,7 +40,8 @@ def apply_cnn(filename):
     #load and split data
     data = pd.read_csv(filename)
     datatrain, datatest =preproc(data, drop_classes=['F'],binary=True)
-    datatrain, datatest = label_encoding([datatrain, datatest],'/Users/france/code/fabriciojm/arrhythmia/arrhythmia/ml_logic/pickles/binary_cnn_labels.pkl')
+    # Update path as a Param
+    # datatrain, datatest = label_encoding([datatrain, datatest],'/Users/france/code/fabriciojm/hadt/hadt/ml_logic/pickles/binary_cnn_labels.pkl')
 
     X_train,y_train = datatrain.drop(columns=['target']), datatrain.target
     X_test,y_test = datatest.drop(columns=['target']), datatest.target

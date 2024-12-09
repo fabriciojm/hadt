@@ -1,13 +1,12 @@
-# arrhythmia
-A tool for identifying anomalous heartbeats
+# hadt
+Heart Arrhythmia Detection Tools
+
 ## Overview
-Arrhythmia is a Python-based tool that analyzes ECG signals to detect and classify abnormal heartbeats.
-It uses machine learning algorithms to identify various types of arrhythmias using the [MIT-BIH Arrhythmia Database](https://physionet.org/content/mitdb/1.0.0/).
+hadt is a Python-based tool that analyzes ECG signals to detect and classify abnormal heartbeats.
+It uses various machine learning algorithms to identify various types of arrhythmias using the [MIT-BIH Arrhythmia Database](https://physionet.org/content/mitdb/1.0.0/).
 
-A web demo can be found in here (add link).
-
-It started as a project for [Le Wagon](https://www.lewagon.com/)'s Data Science Bootcamp.
-Developed by [Chloé Avenas](https://github.com/Chlouette), [Lucas France](https://github.com/Lucasfilm360) and [Fabricio Jiménez Morales](https://github.com/fabriciojm).
+This project was originally pitched and selected for development as one of the final student projects for Le Wagon's Data Science Bootcamp.
+The original version can be visited in the [arrhythmia](https://github.com/fabriciojm/arrhythmia) repository.
 
 ## Features
 - Heartbeat detection and segmentation of heartbeats (to be included). 
@@ -20,30 +19,16 @@ Developed by [Chloé Avenas](https://github.com/Chlouette), [Lucas France](https
   - Long Short-Term Memory (LSTM) networks.
 
 
-## Summary of results (to be included)
+## Summary of results
+
+Classification models were evaluated using the accuracy score, on the multiclass case.
+We dropped the 'F' category, that represented less than 1% of the data, and kept the N, S, V and Q categories.
+Data was undersampled to achieve class balance.
+
+- LSTM: 96.7%
+- CNN: 95.9%
+- PCA + XGBoost: 95.7%
+- DTW: 94.8%
 
 
-
-## Installation
-To install Arrhythmia, follow these steps:
-
-1. Ensure you have Python 3.8 or higher installed
-1. Clone the repository:
-```bash
-git clone https://github.com/fabriciojm/arrhythmia.git
-cd arrhythmia
-```
-
-1. Create and activate virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate
-```
-1. Install required dependencies:
-```bash
-pip install -r requirements.txt
-```
-1. Verify installation:
-```bash
-python -m arrhythmia --version
-```
+## Installation (to be added)
