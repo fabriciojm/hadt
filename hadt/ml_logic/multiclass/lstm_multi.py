@@ -53,7 +53,7 @@ def evaluate_model(model, df_te):
 if __name__ == "__main__":
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
     # df = df_from_bucket()
-    df = pd.read_csv('../arrhythmia_raw_data/MIT-BIH_raw.csv')
+    df = pd.read_csv('../arrhythmia_mit_bih/MIT-BIH.csv')
     df_tr, df_te = preproc(df, drop_classes=['F'])
     df_tr, df_te = label_encoding([df_tr, df_te], '/home/fabricio/lstm_multi_label_encoding.pkl')
     t_start = time.time()
