@@ -1,8 +1,6 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
-# Can do smarter imports
-from tensorflow.keras import models, layers, optimizers
+from tensorflow.keras import optimizers
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv1D, MaxPooling1D, Dropout, Flatten, Dense, BatchNormalization
 from tensorflow.keras.callbacks import EarlyStopping
