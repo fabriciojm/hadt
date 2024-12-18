@@ -1,14 +1,15 @@
 import numpy as np
 import pandas as pd
 import os
+import argparse
+import json
+import time
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.metrics import classification_report, confusion_matrix
-import time
-
 
 from hadt.ml_logic.preproc import preproc, df_from_bucket, label_encoding
 
@@ -52,10 +53,56 @@ def evaluate_model(model, df_te):
 
 if __name__ == "__main__":
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-    # df = df_from_bucket()
-    df = pd.read_csv('../arrhythmia_mit_bih/MIT-BIH.csv')
-    df_tr, df_te = preproc(df, drop_classes=['F'])
-    df_tr, df_te = label_encoding([df_tr, df_te], '/home/fabricio/lstm_multi_label_encoding.pkl')
+    
+    parser = argparse.ArgumentParser(description='Train LSTM model for multiclass classification')
+    parser.add_argument('--config', type=str, help='Path to the model configuration file')
+    parser.add_argument('--preproc_config', type=str, help='Path to preprocessing configuration file')
+    parser.add_argument('--filename', type=str, help='Path to the input CSV file')
+    parser.add_argument('--drop_classes', nargs='+', choices=['N', 'F', 'Q', 'S', 'V'], 
+                       help='List of classes to drop (N, F, Q, S, V)')
+    parser.add_argument('--output_dir', type=str, help='Directory to save model and encodings')
+    
+    args = parser.parse_args()
+
+    # Define default values
+    defaults = {
+        'filename': '../arrhythmia_mit_bih/MIT-BIH.csv',
+        'drop_classes': ['F'],
+        'output_dir': os.getcwd()
+    }
+
+    # Load config file first
+    config = defaults.copy()
+    if args.config:
+        with open(args.config, 'r') as file:
+            config.update(json.load(file))
+
+    # Override config with CLI arguments (only if they're explicitly provided)
+    for key, value in vars(args).items():
+        if (key not in ['config', 'preproc_config'] and 
+            value is not None and 
+            not (isinstance(value, bool) and value == False)):
+            config[key] = value
+
+    print(f"Using final config:\n{config}")
+
+    # Prepare file paths
+    label_encoding_path = os.path.join(config['output_dir'], 'lstm_multi_label_encoding.pkl')
+    model_path = os.path.join(config['output_dir'], 'lstm_multi_model.h5')
+
+    # Load and preprocess data
+    df = pd.read_csv(config['filename'])
+    
+    # If preproc_config is provided, use it for preprocessing
+    preproc_kwargs = {'drop_classes': config['drop_classes']}
+    if args.preproc_config:
+        with open(args.preproc_config, 'r') as file:
+            preproc_kwargs.update(json.load(file))
+    
+    df_tr, df_te = preproc(df, **preproc_kwargs)
+    df_tr, df_te = label_encoding([df_tr, df_te], label_encoding_path)
+
+    # Train and evaluate model
     t_start = time.time()
     model = initialize_model()
     model = compile_model(model)
@@ -63,5 +110,5 @@ if __name__ == "__main__":
     t_end = time.time()
     print(f"It took {t_end - t_start} seconds for the model to make this prediction.")
 
-    save_model(model, '/home/fabricio/lstm_multi_model.h5')
+    save_model(model, model_path)
     evaluate_model(model, df_te)
