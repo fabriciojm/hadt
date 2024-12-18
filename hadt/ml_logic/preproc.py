@@ -10,7 +10,7 @@ from imblearn.over_sampling import SMOTE
 import argparse, os, io, json, pickle
 from google.cloud import storage
 
-def df_from_bucket(bucket_name='arrhythmia_raw_data', file_name='MIT-BIH_raw.csv', key_path='/home/fabricio/arrhythmia-442911-3fe797ff4111.json'):
+def df_from_bucket(key_path, bucket_name='arrhythmia_mit_bih', file_name='MIT-BIH.csv'):
 
     print(f'Getting {file_name} from {bucket_name} gcp bucket.')
     # Set the environment variable for the service account key
@@ -48,9 +48,6 @@ def label_decoding(value, path):
         mapping = pickle.load(f)
     inverse_mapping = {v: k for k, v in mapping.items()}
     return inverse_mapping[value]
-
-def apply_smote(X, y):
-    pass
 
 def undersample(X, y, n_samples):
     # if n_samples is -1, undersampling to size of least common class
@@ -107,8 +104,7 @@ def preproc_xgb_single(filepath, pca_model_path="/home/fabricio/pca_multiclass.p
     X = pca.transform(X.reshape(1, 180))
     return X
 
-def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, val_split=False,
-            scaler_name='MeanVariance'):
+def preproc(df, n_samples=-1, drop_classes=[], binary=False, scaler_name='MeanVariance'):
 
     # Create a copy to avoid funny errors
     df = df.copy()
@@ -143,10 +139,7 @@ def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, val_sp
     X = X.reshape(X.shape[0], -1)
 
     # Balance classes
-    if smote:
-        pass
-    else:
-        X, y = undersample(X, y, n_samples)
+    X, y = undersample(X, y, n_samples)
 
     # Scale the time series, split
     if scaler_name == "MeanVariance":
@@ -158,15 +151,10 @@ def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, val_sp
         return
 
     # train_test_split, scale
-    if val_split:
-        X_tr, X_te, X_va, y_tr, y_te, y_va = val_split_data(X, y)
-    else:
-        X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42)
 
     X_tr = scaler.fit_transform(X_tr)
     X_te = scaler.transform(X_te)
-    if val_split:
-        X_va = scaler.transform(X_va)
 
     ts_features = df.drop(columns='target').columns
     df_tr = pandasify(X_tr, y_tr, ts_features)
@@ -174,33 +162,22 @@ def preproc(df, n_samples=-1, drop_classes=[], binary=False, smote=False, val_sp
 
     print('Train dims ', X_tr.shape, y_tr.shape)
     print('Test dims ', X_te.shape, y_te.shape)
-    if val_split:
-        df_va = pandasify(X_va, y_va, ts_features)
-        print('Val dims ', X_va.shape, y_va.shape)
-
-    if val_split:
-        return df_tr, df_te, df_va
-    else:
-        return df_tr, df_te
-
+    return df_tr, df_te
 
 def prepare_filename(**kwargs):
     # Extract required arguments from kwargs
     filename = kwargs.get("filename", "default.csv")
     binary = kwargs.get("binary", False)
-    smote = kwargs.get("smote", False)
-    scaler_name = kwargs.get("scaler_name", "Standard")
+    scaler_name = kwargs.get("scaler_name", "MeanVariance")
     drop_classes = kwargs.get("drop_classes", [])
     output_dir = kwargs.get("output_dir", "./")
 
     # Prepare the filename
     out_filename = os.path.basename(filename)[:-4]
-    out_filename = out_filename.replace('raw', 'preproc')
+    out_filename += '_preproc'
 
     if binary:
         out_filename += '_binary'
-    if smote:
-        out_filename += '_smote'
     out_filename += f'_{scaler_name}'
     if drop_classes:
         out_filename += f"_drop{''.join(drop_classes)}"
@@ -208,65 +185,65 @@ def prepare_filename(**kwargs):
 
     return out_filename
 
-
-def val_split_data(X, y, test_size_test=0.2, test_size_val=0.2):
-    X_train_temp, X_test, y_train_temp, y_test = train_test_split(
-        X, y,
-        test_size=test_size_test,
-        random_state=42
-    )
-    # train_validation_test split
-    X_train, X_val, y_train, y_val = train_test_split(
-        X_train_temp, y_train_temp,
-        test_size=test_size_val,
-        random_state=42
-    )
-    return X_train, X_val, X_test, y_train, y_val, y_test
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Preprocess the data, perform class balance')
     parser.add_argument('--config', type=str, help='Path to the configuration file')
     parser.add_argument('--filename', type=str, help='Path to the input CSV file')
-    parser.add_argument('--from_bucket', action='store_true', help='Get the file from the bucket', default=False)
-    parser.add_argument('--n_samples', type=int, help='Number of samples per class (defaults to -1, which means undersampling to size of least common class)', default=-1)
-    parser.add_argument('--binary', action='store_true', help='Group data into two classes (0, 1)', default=False)
-    parser.add_argument('--smote', action='store_true', help='Use SMOTE oversampling (to be finished)', default=False)
-    parser.add_argument('--val_split', action='store_true', help='Split in train/val/test (default train/test)', default=False)
-    parser.add_argument('--drop_classes', nargs='+', choices=['N', 'F', 'Q', 'S', 'V'], help='List of classes to drop (N, F, Q, S, V)', default=[])
-    parser.add_argument("--output_dir", type=str, default=os.getcwd(), help="Path to save the results")
-    parser.add_argument("--scaler_name", type=str, default="MeanVariance", help="Scaler to be used (default MeanVariance)")
+    parser.add_argument('--from_bucket', action='store_true', help='Get the file from the bucket')
+    parser.add_argument('--bucket_key_path', type=str, help='Path to the key file for the bucket')
+    parser.add_argument('--n_samples', type=int, help='Number of samples per class (-1 means undersampling to size of least common class)')
+    parser.add_argument('--binary', action='store_true', help='Group data into two classes (0, 1)')
+    parser.add_argument('--drop_classes', nargs='+', choices=['N', 'F', 'Q', 'S', 'V'], help='List of classes to drop (N, F, Q, S, V)')
+    parser.add_argument("--output_dir", type=str, help="Path to save the results")
+    parser.add_argument("--scaler_name", type=str, help="Scaler to be used")
 
     args = parser.parse_args()
 
-    # Load config file
-    config = {}
+    # Define default values
+    defaults = {
+        'from_bucket': False,
+        'bucket_key_path': None,
+        'n_samples': -1,
+        'binary': False,
+        'drop_classes': [],
+        'output_dir': os.getcwd(),
+        'scaler_name': "MeanVariance"
+    }
+
+    # Load config file first
+    config = defaults.copy()
     if args.config:
         with open(args.config, 'r') as file:
-            config = json.load(file)
+            config.update(json.load(file))
 
-    # Override config with CLI arguments
+    # Override config with CLI arguments (only if they're explicitly provided)
     for key, value in vars(args).items():
-        if value is not None:  # Override if CLI argument is provided
+        # Skip config parameter and store_true args that weren't set on command line
+        if (key != 'config' and 
+            value is not None and 
+            not (isinstance(value, bool) and value == False)):
             config[key] = value
 
     print(f"Using final config:\n{config}")
-    df = df_from_bucket() if args.from_bucket else pd.read_csv(args.filename)
+    if args.from_bucket and args.bucket_key_path is None:
+        print('Error: bucket_key_path is required when from_bucket is True')
+        exit(1)
 
-    dfs = preproc(df,
-                  n_samples=config['n_samples'], drop_classes=config['drop_classes'],
-                  binary=config['binary'], smote=config['smote'],
-                  scaler_name=config['scaler_name'], split=config['val_split'])
-
-
-    if config['val_split']:
-        df_tr, df_va, df_te = dfs
+    if args.from_bucket:
+        df = df_from_bucket(args.bucket_key_path)
     else:
-        df_tr, df_te = dfs
+        print(f"Reading from {config['filename']}")
+        df = pd.read_csv(config['filename'])
+    # assign bucket filename to args.filename if using bucket
+    if args.from_bucket:
+        config['filename'] = 'MIT-BIH.csv'
+
+    df_tr, df_te = preproc(df,
+                           n_samples=config['n_samples'], drop_classes=config['drop_classes'],
+                           binary=config['binary'], scaler_name=config['scaler_name'])
 
     # Save to csv
     out_filename = prepare_filename(**config)
     print(f'Saving to {out_filename}_train.csv and {out_filename}_test.csv')
     df_tr.to_csv(f"{out_filename}_train.csv", index=False)
     df_te.to_csv(f"{out_filename}_test.csv", index=False)
-    if config['val_split']:
-        df_va.to_csv(f"{out_filename}_val.csv", index=False)
