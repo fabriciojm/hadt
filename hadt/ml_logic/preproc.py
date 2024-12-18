@@ -218,9 +218,11 @@ if __name__ == "__main__":
 
     # Override config with CLI arguments (only if they're explicitly provided)
     for key, value in vars(args).items():
-        if value is not None and key != 'config':  # Override only if CLI argument is provided
+        # Skip config parameter and store_true args that weren't set on command line
+        if (key != 'config' and 
+            value is not None and 
+            not (isinstance(value, bool) and value == False)):
             config[key] = value
-            print(f"Overriding {key} with {value}")
 
     print(f"Using final config:\n{config}")
     if args.from_bucket and args.bucket_key_path is None:
