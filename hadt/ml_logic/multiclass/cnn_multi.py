@@ -1,95 +1,124 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
-from tensorflow.keras import models
-from tensorflow.keras import Sequential, layers
 from tensorflow.keras import optimizers
-from sklearn.model_selection import train_test_split
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv1D, MaxPooling1D, Dropout, Flatten, Dense, BatchNormalization
 from tensorflow.keras.callbacks import EarlyStopping
-from sklearn.metrics import classification_report
 from tensorflow.keras.utils import to_categorical
-import os
+from sklearn.metrics import classification_report, confusion_matrix
+import os, argparse, json, time
 from hadt.ml_logic.preproc import preproc, label_encoding
 
 def initialize_model():
-        #Initialize the model
-    model = models.Sequential()
+    return Sequential([
+        Conv1D(8, 3, activation='relu', input_shape=(180, 1)),
+        Conv1D(16, 3, activation='relu'),
+        MaxPooling1D(2),
+        Dropout(0.3),
+        BatchNormalization(),
+        Flatten(),
+        Dense(32, activation='relu'),
+        Dropout(0.3),
+        Dense(4, activation='softmax')
+    ])
 
-    # model.add(layers.Conv1D(8,3, activation='relu', input_shape=X_train.shape[1:]))
-    # model.add(layers.Conv1D(8,3, activation='relu', input_shape=(None, 180, 1)))
-    model.add(layers.Conv1D(8,3, activation='relu'))
-
-
-    model.add(layers.Conv1D(16,3, activation='relu'))
-    model.add(layers.MaxPooling1D(2))
-    model.add(layers.Dropout(0.3))
-    model.add(layers.BatchNormalization()) #normalise  pour accélerer entrainement
-    model.add(layers.Flatten())
-
-    model.add(layers.Dense(32, activation='relu'))
-    model.add(layers.Dropout(0.3))
-
-    model.add(layers.Dense(4,activation='softmax'))
-
+def compile_model(model):
     model.compile(loss='categorical_crossentropy',
                 optimizer=optimizers.Adam(),
                 metrics=['accuracy','recall','precision'])
-
     return model
 
+def train_model(model, df_tr):
+    X_tr, y_tr = df_tr.drop(columns='target'), df_tr.target
+    X_tr = np.expand_dims(X_tr, axis=-1)
+    y_tr = np.expand_dims(y_tr, axis=-1)
+    y_tr = to_categorical(y_tr, num_classes=4)
 
-def apply_cnn(filename):
-    #load and split data
-    data = pd.read_csv(filename)
-    datatrain, datatest =preproc(data, drop_classes=['F'])
-    datatrain, datatest = label_encoding([datatrain, datatest],'/Users/france/code/fabriciojm/arrhythmia/arrhythmia/ml_logic/pickles/binary_cnn_labels.pkl')
-
-    X_train,y_train = datatrain.drop(columns=['target']), datatrain.target
-    X_test,y_test = datatest.drop(columns=['target']), datatest.target
-
-
-    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
-
-    #adapt dimensions for the Con1D layer
-    X_train = np.expand_dims(X_train, axis=-1)
-    X_test = np.expand_dims(X_test, axis=-1)
-    y_train = np.expand_dims(y_train, axis=-1)
-    y_test = np.expand_dims(y_test, axis=-1)
-
-    # #remap y labels to be able to encode
-    # y_train_unique = np.unique(y_train)
-    # y_test_unique = np.unique(y_test)
-    # label_mapping = {old_label: i for i, old_label in enumerate(y_train_unique)}
-    # label_mapping2 = {old_label: i for i, old_label in enumerate(y_test_unique)}
-    # y_train_remapped = np.vectorize(label_mapping.get)(y_train)
-    # y_test_remapped = np.vectorize(label_mapping2.get)(y_test)
-
-    # #OHE encode
-    y_cat_train = to_categorical(y_train, num_classes=4)
-    y_cat_test = to_categorical(y_test, num_classes=4)
-
-    model = initialize_model()
-
-    #fit the model
     es = EarlyStopping(patience=30, restore_best_weights=True)
+    history = model.fit(X_tr, y_tr,
+                    batch_size=32,
+                    epochs=50,
+                    validation_split=0.2,
+                    callbacks=[es])
+    return model, history
 
-    model.fit(X_train, y_cat_train,
-            batch_size=32,
-            epochs=50,
-            validation_split=0.2,
-            callbacks=[es])
+def save_model(model, path):
+    model.save(path)
 
-    res = model.evaluate(X_test, y_cat_test, verbose = 1 )
-    model.save('/Users/france/code/fabriciojm/arrhythmia/arrhythmia/ml_logic/pickles/cnn_multi.h5')
-    y_pred = model.predict(X_test)
-    print(classification_report(max(y_test), max(y_pred)))
-    return(res)
-
+def evaluate_model(model, df_te):
+    X_te, y_te = df_te.drop(columns='target'), df_te.target
+    X_te = np.expand_dims(X_te, axis=-1)
+    y_te = np.expand_dims(y_te, axis=-1)
+    y_te_cat = to_categorical(y_te, num_classes=4)
+    
+    y_pred = model.predict(X_te)
+    print(classification_report(y_te.ravel(), np.argmax(y_pred, axis=1), digits=4))
+    print(confusion_matrix(y_te.ravel(), np.argmax(y_pred, axis=1)))
+    return model.evaluate(X_te, y_te_cat)
 
 if __name__=="__main__":
-#   apply_cnn(../../../)
-    rootpath=(os.path.dirname(__file__)) #print(os.getcwd())
-    relativepath="../../../raw_data/MIT-BIH.csv"
-    csv_path=os.path.join(rootpath,relativepath)
-    print(csv_path)
-    print(apply_cnn(csv_path))
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+    
+    parser = argparse.ArgumentParser(description='Train CNN model for multiclass classification')
+    parser.add_argument('--config', type=str, help='Path to the model configuration file')
+    parser.add_argument('--filename', type=str, help='Path to the input CSV file')
+    parser.add_argument('--drop_classes', nargs='+', choices=['N', 'F', 'Q', 'S', 'V'], 
+                       help='List of classes to drop (N, F, Q, S, V)')
+    parser.add_argument('--output_dir', type=str, help='Directory to save model and encodings')
+    parser.add_argument('--n_samples', type=int, help='Number of samples to use for training')
+    parser.add_argument('--binary', type=bool, help='Whether to use binary classification')
+    parser.add_argument('--scaler_name', type=str, help='Name of the scaler to use')
+    
+    args = parser.parse_args()
+
+    # Define default values
+    defaults = {
+        'filename': '../arrhythmia_raw_data/MIT-BIH_raw.csv',
+        'drop_classes': ['F'],
+        'output_dir': os.getcwd(),
+        'n_samples': -1,
+        'binary': False, 
+        'scaler_name': 'MeanVariance'
+    }
+
+    # Load config file first
+    config = defaults.copy()
+    if args.config:
+        with open(args.config, 'r') as file:
+            config.update(json.load(file))
+
+    # Override config with CLI arguments
+    for key, value in vars(args).items():
+        if (key != 'config' and value is not None and not (isinstance(value, bool) and value == False)):
+            config[key] = value
+
+    print(f"Using final config:\n{config}")
+
+    # Prepare file paths
+    label_encoding_path = os.path.join(config['output_dir'], 'cnn_multi_label_encoding.pkl')
+    model_path = os.path.join(config['output_dir'], 'cnn_multi_model.h5')
+
+    # Load and preprocess data
+    df = pd.read_csv(config['filename'])
+
+    # Extract preprocessing parameters from config
+    preproc_kwargs = {
+        'drop_classes': config['drop_classes'],
+        'n_samples': config['n_samples'],
+        'binary': config['binary'],
+        'scaler_name': config['scaler_name']
+    }
+
+    df_tr, df_te = preproc(df, **preproc_kwargs)
+    df_tr, df_te = label_encoding([df_tr, df_te], label_encoding_path)
+
+    # Train and evaluate model
+    t_start = time.time()
+    model = initialize_model()
+    model = compile_model(model)
+    model, history = train_model(model, df_tr)
+    t_end = time.time()
+    print(f"It took {t_end - t_start} seconds for the model to make this prediction.")
+
+    save_model(model, model_path)
+    evaluate_model(model, df_te)

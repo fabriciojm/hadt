@@ -1,37 +1,44 @@
-import numpy as np
 import pandas as pd
-import os
-import time
-import argparse
-import json
-
+import matplotlib.pyplot as plt
+import numpy as np
+# Can do smarter imports
+from tensorflow.keras import models, layers, optimizers
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
+from tensorflow.keras.layers import Conv1D, MaxPooling1D, Dropout, Flatten, Dense, BatchNormalization
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.metrics import classification_report, confusion_matrix
+import os, argparse, json, time
+from hadt.ml_logic.preproc import preproc, label_encoding
 
-from hadt.ml_logic.preproc import preproc, df_from_bucket, label_encoding
 
 def initialize_model():
-    return Sequential([Input((1, 180)),
-                       LSTM(64),
-                       Dense(1, activation='sigmoid')])
+    return Sequential([
+        Conv1D(8, 3, activation='relu', input_shape=(180, 1)),
+        Conv1D(16, 3, activation='relu'),
+        MaxPooling1D(2),
+        Dropout(0.3),
+        Flatten(),
+        BatchNormalization(),
+        Dense(32, activation='relu'),
+        Dropout(0.3),
+        Dense(1, activation='sigmoid')
+    ])
 
 def compile_model(model):
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    model.compile(loss='binary_crossentropy',
+                optimizer=optimizers.Adam(),
+                metrics=['accuracy','recall','precision'])
     return model
-
 
 def train_model(model, df_tr):
     X_tr, y_tr = df_tr.drop(columns='target'), df_tr.target
-    X_tr = np.expand_dims(X_tr, axis = 1)
+    X_tr = np.expand_dims(X_tr, axis = -1)
 
-    es = EarlyStopping(patience = 10, restore_best_weights=True)
+    es = EarlyStopping(patience = 5, restore_best_weights=True)
     history = model.fit(X_tr, y_tr,
-                        epochs=100, batch_size=256,
+                        epochs=50, batch_size=32,
                         validation_split=0.2,
                         callbacks=[es])
-
     return model, history
 
 def save_model(model, path):
@@ -39,17 +46,37 @@ def save_model(model, path):
 
 def evaluate_model(model, df_te):
     X_te, y_te = df_te.drop(columns='target'), df_te.target
-    X_te = np.expand_dims(X_te, axis = 1)
+    X_te = np.expand_dims(X_te, axis=-1)  # Note: Different axis for CNN
     y_pred = model.predict(X_te)
     y_pred = np.round(y_pred)
     print(classification_report(y_te, y_pred, digits=4))
     print(confusion_matrix(y_te, y_pred))
     return model.evaluate(X_te, y_te)
 
-if __name__ == "__main__":
+if __name__=="__main__":
+# Wagon production code
+#     if MODEL_TARGET == "gcs":
+#             model_filename = model_path.split("/")[-1] # e.g. "20230208-161047.h5" for instance
+#             client = storage.Client()
+#             bucket = client.bucket(BUCKET_NAME)
+#             blob = bucket.blob(f"models/{model_filename}")
+#             blob.upload_from_filename(model_path)
+
+#             print("✅ Model saved to GCS")
+#             return None
+
+#     if MODEL_TARGET == "mlflow":
+#         mlflow.tensorflow.log_model(
+#             model=model,
+#             artifact_path="model",
+#             registered_model_name=MLFLOW_MODEL_NAME
+#         print("✅ Model saved to MLflow")
+#         return None
+#     return None
+
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
     
-    parser = argparse.ArgumentParser(description='Train LSTM model for binary classification')
+    parser = argparse.ArgumentParser(description='Train CNN model for binary classification')
     parser.add_argument('--config', type=str, help='Path to the model configuration file')
     parser.add_argument('--filename', type=str, help='Path to the input CSV file')
     parser.add_argument('--drop_classes', nargs='+', choices=['N', 'F', 'Q', 'S', 'V'], 
@@ -66,7 +93,6 @@ if __name__ == "__main__":
         'filename': '../arrhythmia_raw_data/MIT-BIH_raw.csv',
         'drop_classes': ['F'],
         'output_dir': os.getcwd(),
-        # Add default preprocessing parameters
         'n_samples': -1,
         'binary': True, 
         'scaler_name': 'MeanVariance'
@@ -88,8 +114,8 @@ if __name__ == "__main__":
     print(f"Using final config:\n{config}")
 
     # Prepare file paths
-    label_encoding_path = os.path.join(config['output_dir'], 'lstm_binary_label_encoding.pkl')
-    model_path = os.path.join(config['output_dir'], 'lstm_binary_model.h5')
+    label_encoding_path = os.path.join(config['output_dir'], 'cnn_binary_label_encoding.pkl')
+    model_path = os.path.join(config['output_dir'], 'cnn_binary_model.h5')
 
     # Load and preprocess data
     df = pd.read_csv(config['filename'])
