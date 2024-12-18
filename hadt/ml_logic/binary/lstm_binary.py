@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import os
 import time
+import argparse
+import json
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
@@ -47,16 +49,70 @@ def evaluate_model(model, df_te):
 
 if __name__ == "__main__":
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-    # df = df_from_bucket()
-    df = pd.read_csv('../arrhythmia_raw_data/MIT-BIH_raw.csv')
-    df_tr, df_te = preproc(df, drop_classes=['F'], binary=True)
-    df_tr, df_te = label_encoding([df_tr, df_te], '/home/fabricio/lstm_binary_label_encoding.pkl')
-    t_start = time.time()
+    
+    parser = argparse.ArgumentParser(description='Train LSTM model for binary classification')
+    parser.add_argument('--config', type=str, help='Path to the model configuration file')
+    parser.add_argument('--filename', type=str, help='Path to the input CSV file')
+    parser.add_argument('--drop_classes', nargs='+', choices=['N', 'F', 'Q', 'S', 'V'], 
+                       help='List of classes to drop (N, F, Q, S, V)')
+    parser.add_argument('--output_dir', type=str, help='Directory to save model and encodings')
+    parser.add_argument('--n_samples', type=int, help='Number of samples to use for training')
+    parser.add_argument('--binary', type=bool, help='Whether to use binary classification')
+    parser.add_argument('--scaler_name', type=str, help='Name of the scaler to use')
+    
+    args = parser.parse_args()
 
+    # Define default values
+    defaults = {
+        'filename': '../arrhythmia_raw_data/MIT-BIH_raw.csv',
+        'drop_classes': ['F'],
+        'output_dir': os.getcwd(),
+        # Add default preprocessing parameters
+        'n_samples': -1,
+        'binary': True, 
+        'scaler_name': 'MeanVariance'
+    }
+
+    # Load config file first
+    config = defaults.copy()
+    if args.config:
+        with open(args.config, 'r') as file:
+            config.update(json.load(file))
+
+    # Override config with CLI arguments
+    for key, value in vars(args).items():
+        if (key != 'config' and 
+            value is not None and 
+            not (isinstance(value, bool) and value == False)):
+            config[key] = value
+
+    print(f"Using final config:\n{config}")
+
+    # Prepare file paths
+    label_encoding_path = os.path.join(config['output_dir'], 'lstm_binary_label_encoding.pkl')
+    model_path = os.path.join(config['output_dir'], 'lstm_binary_model.h5')
+
+    # Load and preprocess data
+    df = pd.read_csv(config['filename'])
+    
+    # Extract preprocessing parameters from config
+    preproc_kwargs = {
+        'drop_classes': config['drop_classes'],
+        'n_samples': config['n_samples'],
+        'binary': config['binary'],
+        'scaler_name': config['scaler_name']
+    }
+    
+    df_tr, df_te = preproc(df, **preproc_kwargs)
+    df_tr, df_te = label_encoding([df_tr, df_te], label_encoding_path)
+
+    # Train and evaluate model
+    t_start = time.time()
     model = initialize_model()
     model = compile_model(model)
     model, history = train_model(model, df_tr)
     t_end = time.time()
     print(f"It took {t_end - t_start} seconds for the model to make this prediction.")
-    save_model(model, '/home/fabricio/lstm_binary_model.h5')
+
+    save_model(model, model_path)
     evaluate_model(model, df_te)

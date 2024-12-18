@@ -56,7 +56,6 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description='Train LSTM model for multiclass classification')
     parser.add_argument('--config', type=str, help='Path to the model configuration file')
-    parser.add_argument('--preproc_config', type=str, help='Path to preprocessing configuration file')
     parser.add_argument('--filename', type=str, help='Path to the input CSV file')
     parser.add_argument('--drop_classes', nargs='+', choices=['N', 'F', 'Q', 'S', 'V'], 
                        help='List of classes to drop (N, F, Q, S, V)')
@@ -68,7 +67,11 @@ if __name__ == "__main__":
     defaults = {
         'filename': '../arrhythmia_mit_bih/MIT-BIH.csv',
         'drop_classes': ['F'],
-        'output_dir': os.getcwd()
+        'output_dir': os.getcwd(),
+        # Add default preprocessing parameters
+        'n_samples': -1,
+        'binary': False,
+        'scaler_name': 'MeanVariance'
     }
 
     # Load config file first
@@ -79,7 +82,7 @@ if __name__ == "__main__":
 
     # Override config with CLI arguments (only if they're explicitly provided)
     for key, value in vars(args).items():
-        if (key not in ['config', 'preproc_config'] and 
+        if (key != 'config' and 
             value is not None and 
             not (isinstance(value, bool) and value == False)):
             config[key] = value
@@ -93,11 +96,13 @@ if __name__ == "__main__":
     # Load and preprocess data
     df = pd.read_csv(config['filename'])
     
-    # If preproc_config is provided, use it for preprocessing
-    preproc_kwargs = {'drop_classes': config['drop_classes']}
-    if args.preproc_config:
-        with open(args.preproc_config, 'r') as file:
-            preproc_kwargs.update(json.load(file))
+    # Extract preprocessing parameters from config
+    preproc_kwargs = {
+        'drop_classes': config['drop_classes'],
+        'n_samples': config['n_samples'],
+        'binary': config['binary'],
+        'scaler_name': config['scaler_name']
+    }
     
     df_tr, df_te = preproc(df, **preproc_kwargs)
     df_tr, df_te = label_encoding([df_tr, df_te], label_encoding_path)
