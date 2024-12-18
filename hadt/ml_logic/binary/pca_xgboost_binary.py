@@ -13,15 +13,12 @@ def pca(X_train, X_test, k):
     # project out dataset into this new set of PCs
     X_train_proj = pd.DataFrame(pca_k.transform(X_train), columns=[f'PC{i}' for i in range(1,k+1)])
     X_test_proj = pd.DataFrame(pca_k.transform(X_test), columns=[f'PC{i}' for i in range(1,k+1)])
-    print("pca done!")
     return X_train_proj, X_test_proj
 
 def fit_xgboost(X_train, y_train):
     # XGBoost Classifier
     model = XGBClassifier()
     model.fit(X_train, y_train)
-    print("fit done!")
-    # return trained model
     return model
 
 def predict_xgboost(model, X_test):
