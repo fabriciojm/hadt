@@ -189,36 +189,52 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Preprocess the data, perform class balance')
     parser.add_argument('--config', type=str, help='Path to the configuration file')
     parser.add_argument('--filename', type=str, help='Path to the input CSV file')
-    parser.add_argument('--from_bucket', action='store_true', help='Get the file from the bucket', default=False)
-    parser.add_argument('--bucket_key_path', default=None, type=str, help='Path to the key file for the bucket')
-    parser.add_argument('--n_samples', type=int, help='Number of samples per class (defaults to -1, which means undersampling to size of least common class)', default=-1)
-    parser.add_argument('--binary', action='store_true', help='Group data into two classes (0, 1)', default=False)
-    parser.add_argument('--drop_classes', nargs='+', choices=['N', 'F', 'Q', 'S', 'V'], help='List of classes to drop (N, F, Q, S, V)', default=[])
-    parser.add_argument("--output_dir", type=str, default=os.getcwd(), help="Path to save the results")
-    parser.add_argument("--scaler_name", type=str, default="MeanVariance", help="Scaler to be used (default MeanVariance)")
+    parser.add_argument('--from_bucket', action='store_true', help='Get the file from the bucket')
+    parser.add_argument('--bucket_key_path', type=str, help='Path to the key file for the bucket')
+    parser.add_argument('--n_samples', type=int, help='Number of samples per class (-1 means undersampling to size of least common class)')
+    parser.add_argument('--binary', action='store_true', help='Group data into two classes (0, 1)')
+    parser.add_argument('--drop_classes', nargs='+', choices=['N', 'F', 'Q', 'S', 'V'], help='List of classes to drop (N, F, Q, S, V)')
+    parser.add_argument("--output_dir", type=str, help="Path to save the results")
+    parser.add_argument("--scaler_name", type=str, help="Scaler to be used")
 
     args = parser.parse_args()
 
-    # Load config file
-    config = {}
+    # Define default values
+    defaults = {
+        'from_bucket': False,
+        'bucket_key_path': None,
+        'n_samples': -1,
+        'binary': False,
+        'drop_classes': [],
+        'output_dir': os.getcwd(),
+        'scaler_name': "MeanVariance"
+    }
+
+    # Load config file first
+    config = defaults.copy()
     if args.config:
         with open(args.config, 'r') as file:
-            config = json.load(file)
+            config.update(json.load(file))
 
-    # Override config with CLI arguments
+    # Override config with CLI arguments (only if they're explicitly provided)
     for key, value in vars(args).items():
-        if value is not None:  # Override if CLI argument is provided
+        if value is not None and key != 'config':  # Override only if CLI argument is provided
             config[key] = value
+            print(f"Overriding {key} with {value}")
 
+    print(f"Using final config:\n{config}")
     if args.from_bucket and args.bucket_key_path is None:
         print('Error: bucket_key_path is required when from_bucket is True')
         exit(1)
 
-    print(f"Using final config:\n{config}")
-    df = df_from_bucket(args.bucket_key_path) if args.from_bucket else pd.read_csv(args.filename)
+    if args.from_bucket:
+        df = df_from_bucket(args.bucket_key_path)
+    else:
+        print(f"Reading from {config['filename']}")
+        df = pd.read_csv(config['filename'])
     # assign bucket filename to args.filename if using bucket
     if args.from_bucket:
-        args.filename = 'MIT-BIH.csv'
+        config['filename'] = 'MIT-BIH.csv'
 
     df_tr, df_te = preproc(df,
                            n_samples=config['n_samples'], drop_classes=config['drop_classes'],

@@ -165,9 +165,13 @@ cython_debug/
 
 # Data related
 raw_data/
+data/
 *.csv
 *.pkl
 *.json
 
 # Mac OS
 .DS_Store
+
+# Local config
+hadt/ml_logic/config/
