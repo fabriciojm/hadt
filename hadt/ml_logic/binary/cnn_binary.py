@@ -7,6 +7,7 @@ from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.metrics import classification_report, confusion_matrix
 import os, argparse, json, time
 from hadt.ml_logic.preproc import preproc, label_encoding
+from hadt.ml_logic.utils.config_utils import build_config
 
 
 def initialize_model():
@@ -44,7 +45,7 @@ def save_model(model, path):
 
 def evaluate_model(model, df_te):
     X_te, y_te = df_te.drop(columns='target'), df_te.target
-    X_te = np.expand_dims(X_te, axis=-1)  # Note: Different axis for CNN
+    X_te = np.expand_dims(X_te, axis=-1) 
     y_pred = model.predict(X_te)
     y_pred = np.round(y_pred)
     print(classification_report(y_te, y_pred, digits=4))
@@ -86,7 +87,6 @@ if __name__=="__main__":
     
     args = parser.parse_args()
 
-    # Define default values
     defaults = {
         'filename': '../arrhythmia_raw_data/MIT-BIH_raw.csv',
         'drop_classes': ['F'],
@@ -95,21 +95,8 @@ if __name__=="__main__":
         'binary': True, 
         'scaler_name': 'MeanVariance'
     }
-
-    # Load config file first
-    config = defaults.copy()
-    if args.config:
-        with open(args.config, 'r') as file:
-            config.update(json.load(file))
-
-    # Override config with CLI arguments
-    for key, value in vars(args).items():
-        if (key != 'config' and 
-            value is not None and 
-            not (isinstance(value, bool) and value == False)):
-            config[key] = value
-
-    print(f"Using final config:\n{config}")
+    
+    config, preproc_kwargs = build_config(args, defaults=defaults)
 
     # Prepare file paths
     label_encoding_path = os.path.join(config['output_dir'], 'cnn_binary_label_encoding.pkl')
@@ -117,15 +104,6 @@ if __name__=="__main__":
 
     # Load and preprocess data
     df = pd.read_csv(config['filename'])
-    
-    # Extract preprocessing parameters from config
-    preproc_kwargs = {
-        'drop_classes': config['drop_classes'],
-        'n_samples': config['n_samples'],
-        'binary': config['binary'],
-        'scaler_name': config['scaler_name']
-    }
-    
     df_tr, df_te = preproc(df, **preproc_kwargs)
     df_tr, df_te = label_encoding([df_tr, df_te], label_encoding_path)
 

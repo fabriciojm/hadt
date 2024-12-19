@@ -12,6 +12,7 @@ from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.metrics import classification_report, confusion_matrix
 
 from hadt.ml_logic.preproc import preproc, df_from_bucket, label_encoding
+from hadt.ml_logic.utils.config_utils import build_config
 
 def initialize_model():
     return Sequential([Input((1, 180)),
@@ -60,6 +61,9 @@ if __name__ == "__main__":
     parser.add_argument('--drop_classes', nargs='+', choices=['N', 'F', 'Q', 'S', 'V'], 
                        help='List of classes to drop (N, F, Q, S, V)')
     parser.add_argument('--output_dir', type=str, help='Directory to save model and encodings')
+    parser.add_argument('--n_samples', type=int, help='Number of samples to use for training')
+    parser.add_argument('--binary', type=bool, help='Whether to use binary classification')
+    parser.add_argument('--scaler_name', type=str, help='Name of the scaler to use')
     
     args = parser.parse_args()
 
@@ -68,26 +72,12 @@ if __name__ == "__main__":
         'filename': '../arrhythmia_mit_bih/MIT-BIH.csv',
         'drop_classes': ['F'],
         'output_dir': os.getcwd(),
-        # Add default preprocessing parameters
         'n_samples': -1,
         'binary': False,
         'scaler_name': 'MeanVariance'
     }
-
-    # Load config file first
-    config = defaults.copy()
-    if args.config:
-        with open(args.config, 'r') as file:
-            config.update(json.load(file))
-
-    # Override config with CLI arguments (only if they're explicitly provided)
-    for key, value in vars(args).items():
-        if (key != 'config' and 
-            value is not None and 
-            not (isinstance(value, bool) and value == False)):
-            config[key] = value
-
-    print(f"Using final config:\n{config}")
+    
+    config, preproc_kwargs = build_config(args, defaults=defaults)
 
     # Prepare file paths
     label_encoding_path = os.path.join(config['output_dir'], 'lstm_multi_label_encoding.pkl')
@@ -95,15 +85,6 @@ if __name__ == "__main__":
 
     # Load and preprocess data
     df = pd.read_csv(config['filename'])
-    
-    # Extract preprocessing parameters from config
-    preproc_kwargs = {
-        'drop_classes': config['drop_classes'],
-        'n_samples': config['n_samples'],
-        'binary': config['binary'],
-        'scaler_name': config['scaler_name']
-    }
-    
     df_tr, df_te = preproc(df, **preproc_kwargs)
     df_tr, df_te = label_encoding([df_tr, df_te], label_encoding_path)
 
