@@ -11,6 +11,7 @@ from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.metrics import classification_report, confusion_matrix
 
 from hadt.ml_logic.preproc import preproc, df_from_bucket, label_encoding
+from hadt.ml_logic.utils.config_utils import build_config
 
 def initialize_model():
     return Sequential([Input((1, 180)),
@@ -63,29 +64,15 @@ if __name__ == "__main__":
 
     # Define default values
     defaults = {
-        'filename': '../arrhythmia_raw_data/MIT-BIH_raw.csv',
+        'filename': '../arrhythmia_mit_bih/MIT-BIH.csv',
         'drop_classes': ['F'],
         'output_dir': os.getcwd(),
-        # Add default preprocessing parameters
         'n_samples': -1,
         'binary': True, 
         'scaler_name': 'MeanVariance'
     }
-
-    # Load config file first
-    config = defaults.copy()
-    if args.config:
-        with open(args.config, 'r') as file:
-            config.update(json.load(file))
-
-    # Override config with CLI arguments
-    for key, value in vars(args).items():
-        if (key != 'config' and 
-            value is not None and 
-            not (isinstance(value, bool) and value == False)):
-            config[key] = value
-
-    print(f"Using final config:\n{config}")
+    
+    config, preproc_kwargs = build_config(args, defaults=defaults)
 
     # Prepare file paths
     label_encoding_path = os.path.join(config['output_dir'], 'lstm_binary_label_encoding.pkl')
@@ -93,15 +80,6 @@ if __name__ == "__main__":
 
     # Load and preprocess data
     df = pd.read_csv(config['filename'])
-    
-    # Extract preprocessing parameters from config
-    preproc_kwargs = {
-        'drop_classes': config['drop_classes'],
-        'n_samples': config['n_samples'],
-        'binary': config['binary'],
-        'scaler_name': config['scaler_name']
-    }
-    
     df_tr, df_te = preproc(df, **preproc_kwargs)
     df_tr, df_te = label_encoding([df_tr, df_te], label_encoding_path)
 

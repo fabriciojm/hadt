@@ -1,87 +1,76 @@
 import pandas as pd
-import numpy as np
-from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from sklearn.pipeline import make_pipeline
 from xgboost import XGBClassifier
+from sklearn.metrics import classification_report, confusion_matrix
+import joblib, os, argparse
+
 from hadt.ml_logic.preproc import preproc, label_encoding
-from sklearn.metrics import classification_report
-import time
-import pickle
+from hadt.ml_logic.utils.config_utils import build_config
 
 
-# def convert(y):
-#     '''function to convert y in the format expected by XGBClassifier'''
-#     return y.map({
-#         0: 0,
-#         2: 1,
-#         3: 2,
-#         4: 3
-#     })
+def initialize_model(k):
+    return make_pipeline(PCA(n_components=k), XGBClassifier())
 
-# def invert(y):
-#     '''function to convert back our predictions in the original format'''
-#     return pd.Series(y).map({
-#         0: 0,
-#         1: 2,
-#         2: 3,
-#         3: 4
-#     })
-
-def pca(X_train, X_test, k):
-    # compute the principal components
-    pca_k = PCA(n_components=k).fit(X_train)
-    # project out dataset into this new set of PCs
-    X_train_proj = pd.DataFrame(pca_k.transform(X_train), columns=[f'PC{i}' for i in range(1,k+1)])
-    X_test_proj = pd.DataFrame(pca_k.transform(X_test), columns=[f'PC{i}' for i in range(1,k+1)])
-    print("pca done!")
-    file_pca = "/home/fabricio/pca_multiclass.pkl"
-    with open(file_pca, "wb") as file:
-        pickle.dump(pca_k, file)
-    print('PCA file saved in ', file_pca)
-    return X_train_proj, X_test_proj
-
-def fit_xgboost(X_train, y_train):
-    # XGBoost Classifier
-    model = XGBClassifier()
-    # model.fit(X_train, convert(y_train))
-    model.fit(X_train, y_train)
-    print("fit done!")
-    # return trained model
+def compile_model(model):
+    # Comply with logic of other models
     return model
 
-def predict_xgboost(model, X_test):
-    # y_pred = invert(model.predict(X_test))
-    y_pred = model.predict(X_test)
-    return y_pred
+def train_model(model, df_tr):
+    X_tr, y_tr = df_tr.drop(columns='target'), df_tr.target
+    model.fit(X_tr, y_tr)
+    return model, None
 
-def main(X_train, X_test, y_train, k=10):
-    # PCA to reduce the nber of columns for X_train and X_test
-    # k = 10 is the best estimated number of PCs to have around 0.95 of accuracy
-    X_train_proj, X_test_proj = pca(X_train, X_test, k)
-    # fit
-    model = fit_xgboost(X_train_proj, y_train)
-    # Save the XGBoost model to a .pkl file
-    with open("/home/fabricio/pca_xgboost_multiclass.pkl", "wb") as file:
-        pickle.dump(model, file)
-    # predict
-    y_pred = predict_xgboost(model, X_test_proj)
-    return y_pred
+def evaluate_model(model, df_te):
+    X_te, y_te = df_te.drop(columns='target'), df_te.target
+    
+    y_pred = model.predict(X_te)
+    print(classification_report(y_te, y_pred, digits=4))
+    print(confusion_matrix(y_te, y_pred))
+    return model.score(X_te, y_te)
 
-# main function
+def save_model(model, model_path):
+    joblib.dump(model, model_path)
+
 if __name__ == "__main__":
-    # raw_data = pd.read_csv("../../../raw_data/MIT-BIH.csv")
-    raw_data = pd.read_csv("/home/fabricio/arrhythmia_raw_data/MIT-BIH_raw.csv")
-    data_train, data_test = preproc(raw_data, drop_classes=["F"], binary=False)
-    # data_train = pd.read_csv("../../../raw_data/MIT-BIH_raw_dropF_train.csv")
-    # data_train, data_test = label_encoding([data_train, data_test], '/home/chlouette/code/fabriciojm/arrhythmia/arrhythmia/ml_logic/pickles/pca_xgboost_multiclass_label_encoding.pkl')
-    data_train, data_test = label_encoding([data_train, data_test], '/home/fabricio/pca_xgboost_multiclass_label_encoding.pkl')
-    X_train = data_train.drop(columns="target")
-    y_train = data_train.target
-    # X_test = pd.read_csv("../../../raw_data/MIT-BIH_raw_dropF_test.csv").drop(columns="target")
-    X_test = data_test.drop(columns="target")
-    y_test = data_test.target
-    t_start = time.time()
-    y_pred = main(X_train, X_test, y_train, k=10)
-    t_end = time.time()
-    print(classification_report(y_test, y_pred, digits=4))
-    print(f"It took {t_end - t_start} seconds for the model to make this prediction.")
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+    
+    parser = argparse.ArgumentParser(description='Train PCA-XGBoost model for multiclass classification')
+    parser.add_argument('--config', type=str, help='Path to the model configuration file')
+    parser.add_argument('--filename', type=str, help='Path to the input CSV file')
+    parser.add_argument('--drop_classes', nargs='+', choices=['N', 'F', 'Q', 'S', 'V'], 
+                       help='List of classes to drop (N, F, Q, S, V)')
+    parser.add_argument('--output_dir', type=str, help='Directory to save model and encodings')
+    parser.add_argument('--n_samples', type=int, help='Number of samples to use for training')
+    parser.add_argument('--binary', type=bool, help='Whether to use binary classification')
+    parser.add_argument('--scaler_name', type=str, help='Name of the scaler to use')
+    parser.add_argument('--k', type=int, help='Number of principal components to use')
+
+    args = parser.parse_args()
+
+    defaults = {
+        'filename': '../arrhythmia_mit_bih/MIT-BIH.csv',
+        'drop_classes': ['F'],
+        'output_dir': os.getcwd(),
+        'n_samples': -1,
+        'binary': False,
+        'scaler_name': 'MeanVariance',
+        'k': 10
+    }
+
+    config, preproc_kwargs = build_config(args, defaults=defaults)
+
+    # Prepare file paths
+    label_encoding_path = os.path.join(config['output_dir'], 'pca_xgboost_multiclass_label_encoding.pkl')
+    model_path = os.path.join(config['output_dir'], 'pca_xgboost_multiclass_model.pkl')
+
+    df = pd.read_csv(config['filename'])
+    df_tr, df_te = preproc(df, **preproc_kwargs)
+    df_tr, df_te = label_encoding([df_tr, df_te], label_encoding_path)
+
+    model = initialize_model(config['k'])
+    model = compile_model(model)
+    model, _ = train_model(model, df_tr)
+
+    save_model(model, model_path)
+    evaluate_model(model, df_te)
