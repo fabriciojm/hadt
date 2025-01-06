@@ -1,13 +1,9 @@
 import pandas as pd
-import numpy as np
-# from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.pipeline import make_pipeline
 from xgboost import XGBClassifier
 from sklearn.metrics import classification_report, confusion_matrix
-import time
 import joblib, os, argparse
-from sklearn.utils.validation import check_is_fitted
 
 from hadt.ml_logic.preproc import preproc, label_encoding
 from hadt.ml_logic.utils.config_utils import build_config
