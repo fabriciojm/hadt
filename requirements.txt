@@ -2,7 +2,7 @@ pandas==2.2.3
 matplotlib
 numpy==1.26.4
 tensorflow
-scikit-learn
+scikit-learn==1.2.2
 fastdtw
 streamlit
 xgboost

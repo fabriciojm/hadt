@@ -88,7 +88,7 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     defaults = {
-        'filename': '../arrhythmia_raw_data/MIT-BIH_raw.csv',
+        'filename': '../arrhythmia_mit_bih/MIT-BIH.csv',
         'drop_classes': ['F'],
         'output_dir': os.getcwd(),
         'n_samples': -1,
