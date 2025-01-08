@@ -10,5 +10,5 @@ setup(name='hadt',
       description="package description",
       author="fabriciojm",
       url="https://github.com/fabriciojm/hadt",
-      packages=find_packages(), # NEW: find packages automatically
+      packages=find_packages(), 
       install_requires=requirements)
