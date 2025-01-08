@@ -1,5 +1,5 @@
 from google.cloud import storage
-from arrhythmia.api.params import *
+from hadt.api.params import *
 import pickle
 
 def load_model():
