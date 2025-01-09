@@ -80,13 +80,12 @@ def pandasify(X, y, ts_features):
     return pd.concat([X, y], axis=1)
 
 
-
-def preproc_xgb_single(filepath, pca_model_path="/home/fabricio/pca_multiclass.pkl", scaler_name='MeanVariance'):
-    X = pd.read_csv(filepath)
+def preproc_xgb_single(X, pca_model_path="/home/fabricio/pca_multiclass.pkl", scaler_name='MeanVariance'):
+    # to be modified/deprecated
+    # should be called preproc_single_pca
     if X.shape != (1, 180):
         print('File shape is not (1, 180) but ', X.shape, '. Exiting')
         return
-
     X = to_time_series_dataset(X)
     X = X.reshape(X.shape[0], -1)
     if scaler_name == "MeanVariance":
@@ -103,6 +102,18 @@ def preproc_xgb_single(filepath, pca_model_path="/home/fabricio/pca_multiclass.p
     shape = X.shape
     X = pca.transform(X.reshape(1, 180))
     return X
+
+def preproc_single(X):
+    # to be called in inference/api
+    in_shape = X.shape
+    if X.shape != (1, 180):
+        print('File shape is not (1, 180) but ', in_shape)
+
+    X = to_time_series_dataset(X)
+    X = X.reshape(in_shape[0], -1)
+    scaler = TimeSeriesScalerMeanVariance()
+    X = scaler.fit_transform(X)
+    return X.reshape(in_shape)
 
 def preproc(df, n_samples=-1, drop_classes=[], binary=False, scaler_name='MeanVariance'):
 
