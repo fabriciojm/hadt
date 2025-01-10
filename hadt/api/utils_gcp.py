@@ -1,26 +1,17 @@
 from google.cloud import storage
 from hadt.api.params import *
-import pickle
+from hadt.api.wrappers import TensorFlowModelWrapper, SklearnModelWrapper
 
-def load_model():
-    client = storage.Client(project=GCP_PROJECT)
-    bucket = client.get_bucket(BUCKET_NAME_MODELS)
 
-    blobs = list(bucket.list_blobs(prefix="production/pca_xgboost"))
-    try :
-        blob = max(blobs, key=lambda x: x.updated)
-        latest_model_path_to_save = os.path.join(LOCAL_REGISTRY_PATH, blob.name)
-        blob.download_to_filename(latest_model_path_to_save)
-
-        with open(latest_model_path_to_save, "rb") as m :
-            latest_model = pickle.load(m)
-            print("✅ Latest model downloaded from cloud storage")
-
-        return latest_model
-
-    except Exception as e:
-        print('Error : Could not load  :', e)
-
+def load_model(model_path):
+    """Load the local model file"""
+    # model path is a posix path
+    if model_path.suffix == '.h5':
+        return TensorFlowModelWrapper(model_path)
+    elif model_path.suffix == '.pkl':
+        return SklearnModelWrapper(model_path)
+    else:
+        raise ValueError("Unsupported model file type. Please provide a .h5 or .pkl file.")
 
 if __name__ == "__main__":
     load_model()
