@@ -14,11 +14,9 @@ MODEL_DIR = PACKAGE_ROOT / "models"
 app = FastAPI()
 
 # Use absolute paths with Path objects
-# MODEL_PATH = MODEL_DIR / "pca_xgboost_multi_model.pkl"
-# LABEL_ENCODER_PATH = MODEL_DIR / "pca_xgboost_multi_label_encoding.pkl"
 model_cache = {}
 encoder_cache = {}
-# HF_REPO_ID = "your-username/your-model-repo"
+HF_REPO_ID = "your-username/your-model-repo"
 
 app.state.model = None  # Initialize as None, load on first request
 
@@ -43,7 +41,7 @@ async def predict(model_name: str, filepath_csv: UploadFile = File(...)):
             encoder_cache[model_name] = encoder_path
         except Exception as e:
             raise HTTPException(status_code=404, detail=f"Model {model_name} not found")
-    model = model_cache[model_name]
+    model = app.state.model = model_cache[model_name]
 
     # Read the uploaded CSV file
     file_content = await filepath_csv.read()
