@@ -61,8 +61,8 @@ if __name__ == "__main__":
     config, preproc_kwargs = build_config(args, defaults=defaults)
 
     # Prepare file paths
-    label_encoding_path = os.path.join(config['output_dir'], 'pca_xgboost_multiclass_label_encoding.pkl')
-    model_path = os.path.join(config['output_dir'], 'pca_xgboost_multiclass_model.pkl')
+    label_encoding_path = os.path.join(config['output_dir'], 'pca_xgboost_multi_label_encoding.pkl')
+    model_path = os.path.join(config['output_dir'], 'pca_xgboost_multi_model.pkl')
 
     df = pd.read_csv(config['filename'])
     df_tr, df_te = preproc(df, **preproc_kwargs)

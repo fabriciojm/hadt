@@ -9,3 +9,5 @@ scikit-learn
 imblearn
 xgboost
 tslearn
+huggingface-hub
+joblib
