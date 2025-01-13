@@ -1,5 +1,5 @@
 import numpy as np
-from hadt.api.preproc import preproc_single
+from preproc import preproc_single
 
 class BaseModelWrapper:
     def __init__(self, model):

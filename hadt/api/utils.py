@@ -1,4 +1,4 @@
-from hadt.api.wrappers import LSTMWrapper, XGBWrapper, CNNWrapper
+from wrappers import LSTMWrapper, XGBWrapper, CNNWrapper
 import joblib
 from tensorflow.keras.models import load_model
 
