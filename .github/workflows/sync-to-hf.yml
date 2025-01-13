@@ -5,9 +5,9 @@ on:
     branches:
       - main
     paths:
-      - "app/**"
-      - "api/**"
-      - "models/**"
+      - "hadt/app/**"
+      - "hadt/api/**"
+      - "hadt/models/**"
 
 jobs:
   deploy:
@@ -29,7 +29,7 @@ jobs:
         # Clone the API Space
         git clone https://huggingface.co/spaces/fabriciojm/hadt-api api-space
         # Sync API code
-        rsync -av --delete --exclude='.git/' api/ api-space/
+        rsync -av --delete --exclude='.git/' hadt/api/ api-space/
         cd api-space
         git add .
         git commit -m "Sync API from main repo" || echo "No changes to commit"
@@ -42,7 +42,7 @@ jobs:
         # Clone the App Space
         git clone https://huggingface.co/spaces/fabriciojm/hadt-app app-space
         # Sync App code
-        rsync -av --delete --exclude='.git/' app/ app-space/
+        rsync -av --delete --exclude='.git/' hadt/app/ app-space/
         cd app-space
         git add .
         git commit -m "Sync App from main repo" || echo "No changes to commit"
@@ -56,7 +56,7 @@ jobs:
         git lfs install
         git clone https://huggingface.co/fabriciojm/hadt-models model-repo
         # Sync Models
-        rsync -av --delete --exclude='.git/' models/ model-repo/
+        rsync -av --delete --exclude='.git/' hadt/models/ model-repo/
         cd model-repo
         git add .
         git commit -m "Sync Models from main repo" || echo "No changes to commit"
