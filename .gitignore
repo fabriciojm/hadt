@@ -176,4 +176,4 @@ data/
 # Local config
 hadt/ml_logic/config/
 config/
-models/
+hadt/models/
