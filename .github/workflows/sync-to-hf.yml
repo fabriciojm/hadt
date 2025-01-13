@@ -1,0 +1,63 @@
+name: Deploy to Hugging Face Spaces and Model Hub
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "api/**"
+      - "models/**"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Configure Git
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+
+    - name: Sync API to Hugging Face Space
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: |
+        # Clone the API Space
+        git clone https://huggingface.co/spaces/fabriciojm/hadt-api api-space
+        # Sync API code
+        rsync -av --delete --exclude='.git/' api/ api-space/
+        cd api-space
+        git add .
+        git commit -m "Sync API from main repo" || echo "No changes to commit"
+        git push https://huggingface.co/fabriciojm/hadt-api
+
+    - name: Sync App to Hugging Face Space
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: |
+        # Clone the App Space
+        git clone https://huggingface.co/spaces/fabriciojm/hadt-app app-space
+        # Sync App code
+        rsync -av --delete --exclude='.git/' app/ app-space/
+        cd app-space
+        git add .
+        git commit -m "Sync App from main repo" || echo "No changes to commit"
+        git push https://huggingface.co/fabriciojm/hadt-app
+
+    - name: Sync Models to Hugging Face Model Hub
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: |
+        # Clone the Model Hub repository
+        git lfs install
+        git clone https://huggingface.co/fabriciojm/hadt-models model-repo
+        # Sync Models
+        rsync -av --delete --exclude='.git/' models/ model-repo/
+        cd model-repo
+        git add .
+        git commit -m "Sync Models from main repo" || echo "No changes to commit"
+        git push https://huggingface.co/fabriciojm/hadt-models
