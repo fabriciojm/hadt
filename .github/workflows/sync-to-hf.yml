@@ -33,7 +33,7 @@ jobs:
         cd api-space
         git add .
         git commit -m "Sync API from main repo" || echo "No changes to commit"
-        git push https://huggingface.co/fabriciojm/hadt-api
+        git push "https://$HF_TOKEN@huggingface.co/spaces/fabriciojm/hadt-api" main
 
     - name: Sync App to Hugging Face Space
       env:
@@ -46,7 +46,7 @@ jobs:
         cd app-space
         git add .
         git commit -m "Sync App from main repo" || echo "No changes to commit"
-        git push https://huggingface.co/fabriciojm/hadt-app
+        git push "https://$HF_TOKEN@huggingface.co/spaces/fabriciojm/hadt-app" main
 
     - name: Sync Models to Hugging Face Model Hub
       env:
@@ -60,4 +60,4 @@ jobs:
         cd model-repo
         git add .
         git commit -m "Sync Models from main repo" || echo "No changes to commit"
-        git push https://huggingface.co/fabriciojm/hadt-models
+        git push "https://$HF_TOKEN@huggingface.co/spaces/fabriciojm/hadt-models" main
