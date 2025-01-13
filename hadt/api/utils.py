@@ -1,14 +1,6 @@
-# from google.cloud import storage
-# from hadt.api.params import *
 from hadt.api.wrappers import LSTMWrapper, XGBWrapper, CNNWrapper
 import joblib
 from tensorflow.keras.models import load_model
-
-from pathlib import Path
-
-# Get the absolute path to the package directory
-PACKAGE_ROOT = Path(__file__).parent.parent.parent
-MODEL_PATH = PACKAGE_ROOT / "models" / "lstm_multi_model.h5"
 
 
 def load_model_by_type(model_path):
@@ -24,5 +16,25 @@ def load_model_by_type(model_path):
     else:
         raise ValueError("Unsupported model type")
 
+def encoder_from_model(model_name):
+    if model_name == "cnn_multi_model.h5":
+        return "cnn_multi_label_encoding.pkl"
+    elif model_name == "lstm_multi_model.h5":
+        return "lstm_multi_label_encoding.pkl"
+    elif model_name == "pca_xgboost_multi_model.pkl":
+        return "pca_xgboost_multi_label_encoding.pkl"
+    elif model_name == "cnn_binary_model.h5":
+        return "cnn_binary_label_encoding.pkl"
+    elif model_name == "lstm_binary_model.h5":
+        return "lstm_binary_label_encoding.pkl"
+    elif model_name == "pca_xgboost_binary_model.pkl":
+        return "pca_xgboost_binary_label_encoding.pkl"
+    else:
+        raise ValueError("Unsupported model name")
+
+
 if __name__ == "__main__":
+    from pathlib import Path
+    PACKAGE_ROOT = Path(__file__).parent.parent.parent
+    MODEL_PATH = PACKAGE_ROOT / "models" / "lstm_multi_model.h5"
     load_model_by_type(MODEL_PATH)
