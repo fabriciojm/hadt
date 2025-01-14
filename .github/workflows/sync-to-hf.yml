@@ -28,26 +28,26 @@ jobs:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
       run: |
         # Clone the API Space
-        git clone https://$HF_TOKEN@huggingface.co/spaces/fabriciojm/hadt-api api-space
+        git clone https://user:${{secrets.HF_TOKEN}}@huggingface.co/spaces/fabriciojm/hadt-api api-space
         # Sync API code
         rsync -av --delete --exclude='.git/' hadt/api/ api-space/
         cd api-space
         git add .
         git commit -m "Sync API from main repo" || echo "No changes to commit"
-        git push https://$HF_TOKEN@huggingface.co/spaces/fabriciojm/hadt-api main
+        git push https://user:${{secrets.HF_TOKEN}}@huggingface.co/spaces/fabriciojm/hadt-api main
 
     - name: Sync App to Hugging Face Space
       env:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
       run: |
         # Clone the App Space
-        git clone https://$HF_TOKEN@huggingface.co/spaces/fabriciojm/hadt-app app-space
+        git clone https://user:${{secrets.HF_TOKEN}}@huggingface.co/spaces/fabriciojm/hadt-app app-space
         # Sync App code
         rsync -av --delete --exclude='.git/' hadt/app/ app-space/
         cd app-space
         git add .
         git commit -m "Sync App from main repo" || echo "No changes to commit"
-        git push https://$HF_TOKEN@huggingface.co/spaces/fabriciojm/hadt-app main
+        git push https://user:${{secrets.HF_TOKEN}}@huggingface.co/spaces/fabriciojm/hadt-app main
 
     - name: Sync Models to Hugging Face Model Hub
       env:
@@ -55,10 +55,10 @@ jobs:
       run: |
         # Clone the Model Hub repository
         git lfs install
-        git clone https://$HF_TOKEN@huggingface.co/spaces/fabriciojm/hadt-models model-repo
+        git clone https://user:${{secrets.HF_TOKEN}}@huggingface.co/spaces/fabriciojm/hadt-models model-repo
         # Sync Models
         rsync -av --delete --exclude='.git/' hadt/models/ model-repo/
         cd model-repo
         git add .
         git commit -m "Sync Models from main repo" || echo "No changes to commit"
-        git push https://$HF_TOKEN@huggingface.co/spaces/fabriciojm/hadt-models main
+        git push https://user:${{secrets.HF_TOKEN}}@huggingface.co/spaces/fabriciojm/hadt-models main
