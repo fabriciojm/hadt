@@ -59,6 +59,7 @@ jobs:
         # Sync Models
         rsync -av --delete --exclude='.git/' hadt/models/ model-repo/
         cd model-repo
+        git lfs pull
         git add .
         git commit -m "Sync Models from main repo" || echo "No changes to commit"
         git push https://user:${{secrets.HF_TOKEN}}@huggingface.co/fabriciojm/hadt-models main
