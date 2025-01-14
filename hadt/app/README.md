@@ -1,7 +1,7 @@
 ---
 title: hadt Web app
 emoji: 🫀
-colorFrom: white
+colorFrom: red
 colorTo: pink
 sdk: streamlit  # Since this is a Streamlit app
 sdk_version: "1.16.0"  # Streamlit version to use (e.g., "1.16.0")
