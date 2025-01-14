@@ -55,14 +55,14 @@ jobs:
       run: |
         # Install and configure Git LFS
         git lfs install
+        # Pull LFS files from the origin
+        git lfs fetch origin
+        git lfs pull origin main
         
         # Clone the Model Hub repository
         git clone https://user:${{secrets.HF_TOKEN}}@huggingface.co/fabriciojm/hadt-models model-repo
         cd model-repo
         
-        # Pull LFS files from the origin
-        git lfs fetch origin
-        git lfs pull origin main
         
         # Sync Models
         ls -lh ../hadt/models/
