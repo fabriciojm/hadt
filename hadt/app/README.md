@@ -2,7 +2,7 @@
 title: hadt API
 emoji: 🫀
 colorFrom: white
-colorTo: blue
+colorTo: pink
 sdk: docker
 app_port: 8000
 ---
