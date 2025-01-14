@@ -6,6 +6,7 @@ from preproc import label_decoding
 import pandas as pd
 from io import StringIO
 from pathlib import Path
+import os
 
 # Get the absolute path to the package directory
 PACKAGE_ROOT = Path(__file__).parent.parent.parent
@@ -16,6 +17,14 @@ app = FastAPI(
     redoc_url="/redoc",
     openapi_url="/openapi.json"
 )
+
+# Dynamically set the cache directory
+DEFAULT_CACHE_DIR = "./cache"  # Local directory for cache
+CACHE_DIR = os.getenv("CACHE_DIR", DEFAULT_CACHE_DIR)
+
+# Ensure the cache directory exists
+os.makedirs(CACHE_DIR, exist_ok=True)
+
 
 # Use absolute paths with Path objects
 model_cache = {}
@@ -37,14 +46,14 @@ async def predict(model_name: str, filepath_csv: UploadFile = File(...)):
 
     # if model in model_path, load it, otherwise download it from HF
     if model_name not in model_cache:
-        print("model_name", model_name)
-        print("model_path", model_path)
+        # print("model_name", model_name)
+        # print("model_path", model_path)
         try:
             if not model_path.exists():
                 # Convert downloaded paths to Path objects
-                model_path = Path(hf_hub_download(repo_id=HF_REPO_ID, filename=f"{model_name}"))
-                encoder_path = Path(hf_hub_download(repo_id=HF_REPO_ID, filename=f"{encoder_name}"))
-            print("model_path", model_path)
+                model_path = Path(hf_hub_download(repo_id=HF_REPO_ID, filename=f"{model_name}", cache_dir=CACHE_DIR))
+                encoder_path = Path(hf_hub_download(repo_id=HF_REPO_ID, filename=f"{encoder_name}", cache_dir=CACHE_DIR))
+            # print("model_path", model_path)
             model_cache[model_name] = load_model_by_type(model_path)  # Ensure string path for loading
             encoder_cache[model_name] = encoder_path
         except Exception as e:
