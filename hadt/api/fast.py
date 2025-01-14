@@ -39,8 +39,8 @@ async def predict(model_name: str, filepath_csv: UploadFile = File(...)):
     if model_name not in model_cache:
         try:
             if not model_path.exists():
-                model_path = hf_hub_download(repo_id=model_name, filename=f"{model_name}")
-                encoder_path = hf_hub_download(repo_id=model_name, filename=f"{encoder_name}")
+                model_path = hf_hub_download(repo_id=HF_REPO_ID, filename=f"{model_name}")
+                encoder_path = hf_hub_download(repo_id=HF_REPO_ID, filename=f"{encoder_name}")
             model_cache[model_name] = load_model_by_type(model_path)
             encoder_cache[model_name] = encoder_path
         except Exception as e:
