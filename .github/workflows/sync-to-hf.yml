@@ -55,10 +55,10 @@ jobs:
       run: |
         # Clone the Model Hub repository
         git lfs install
-        git clone https://user:${{secrets.HF_TOKEN}}@huggingface.co/spaces/fabriciojm/hadt-models model-repo
+        git clone https://user:${{secrets.HF_TOKEN}}@huggingface.co/fabriciojm/hadt-models model-repo
         # Sync Models
         rsync -av --delete --exclude='.git/' hadt/models/ model-repo/
         cd model-repo
         git add .
         git commit -m "Sync Models from main repo" || echo "No changes to commit"
-        git push https://user:${{secrets.HF_TOKEN}}@huggingface.co/spaces/fabriciojm/hadt-models main
+        git push https://user:${{secrets.HF_TOKEN}}@huggingface.co/fabriciojm/hadt-models main
