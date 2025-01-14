@@ -53,15 +53,23 @@ jobs:
       env:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
       run: |
+        # Install and configure Git LFS
+        git lfs install
+        
         # Clone the Model Hub repository
         git clone https://user:${{secrets.HF_TOKEN}}@huggingface.co/fabriciojm/hadt-models model-repo
+        cd model-repo
+        
+        # Pull LFS files from the origin
+        git lfs fetch origin
+        git lfs pull origin main
         
         # Sync Models
-        rsync -av --delete --exclude='.git/' hadt/models/ model-repo/
+        rsync -av --delete --exclude='.git/' ../hadt/models/ ./
         
-        # Add, commit and push
-        cd model-repo
+        # Add, commit, and push changes with LFS
         git add .
         git commit -m "Sync Models from main repo" || echo "No changes to commit"
+        git lfs push origin main --all
         git push https://user:${{secrets.HF_TOKEN}}@huggingface.co/fabriciojm/hadt-models main
 
