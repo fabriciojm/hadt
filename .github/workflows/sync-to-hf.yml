@@ -65,6 +65,7 @@ jobs:
         git lfs track "hadt/models/*.h5"
         
         # Sync Models
+        git lfs pull origin main
         rsync -av --delete --exclude='.git/' ../hadt/models/ ./
         
         # Add, commit and push with LFS
