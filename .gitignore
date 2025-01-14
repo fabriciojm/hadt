@@ -176,4 +176,7 @@ data/
 # Local config
 hadt/ml_logic/config/
 config/
-hadt/models/
+hadt/models/*
+# Allow .pkl and .h5 files in hadt/models/
+!hadt/models/*.pkl
+!hadt/models/*.h5
