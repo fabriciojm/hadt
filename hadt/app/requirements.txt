@@ -1,0 +1,4 @@
+altair
+matplotlib
+pandas
+requests
