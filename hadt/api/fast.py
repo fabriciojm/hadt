@@ -11,7 +11,11 @@ from pathlib import Path
 PACKAGE_ROOT = Path(__file__).parent.parent.parent
 MODEL_DIR = PACKAGE_ROOT / "models"
 
-app = FastAPI()
+app = FastAPI(
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
+)
 
 # Use absolute paths with Path objects
 model_cache = {}
