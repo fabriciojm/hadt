@@ -8,6 +8,7 @@ on:
       - "hadt/app/**"
       - "hadt/api/**"
       - "hadt/models/**"
+  workflow_dispatch:
 
 jobs:
   deploy:
