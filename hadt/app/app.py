@@ -25,7 +25,7 @@ if uploaded_file is not None:
 
         # Call the API
         response = requests.post(
-            "https://huggingface.co/spaces/fabriciojm/hadt-api/predict/",
+            "https://fabriciojm-hadt-api.hf.space/predict/",
             json={"model_name": model, "input_data": df},
         )
 
