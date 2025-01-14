@@ -37,14 +37,19 @@ async def predict(model_name: str, filepath_csv: UploadFile = File(...)):
 
     # if model in model_path, load it, otherwise download it from HF
     if model_name not in model_cache:
+        print("model_name", model_name)
+        print("model_path", model_path)
         try:
             if not model_path.exists():
-                model_path = hf_hub_download(repo_id=HF_REPO_ID, filename=f"{model_name}")
-                encoder_path = hf_hub_download(repo_id=HF_REPO_ID, filename=f"{encoder_name}")
-            model_cache[model_name] = load_model_by_type(model_path)
+                # Convert downloaded paths to Path objects
+                model_path = Path(hf_hub_download(repo_id=HF_REPO_ID, filename=f"{model_name}"))
+                encoder_path = Path(hf_hub_download(repo_id=HF_REPO_ID, filename=f"{encoder_name}"))
+            print("model_path", model_path)
+            model_cache[model_name] = load_model_by_type(model_path)  # Ensure string path for loading
             encoder_cache[model_name] = encoder_path
         except Exception as e:
-            raise HTTPException(status_code=404, detail=f"Model {model_name} not found")
+            print(f"Error loading model: {str(e)}")  # Add debug print
+            raise HTTPException(status_code=404, detail=f"Model {model_name} not found: {str(e)}")
     model = app.state.model = model_cache[model_name]
 
     # Read the uploaded CSV file
