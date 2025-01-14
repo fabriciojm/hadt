@@ -20,7 +20,7 @@ app = FastAPI(
 # Use absolute paths with Path objects
 model_cache = {}
 encoder_cache = {}
-HF_REPO_ID = "your-username/your-model-repo"
+HF_REPO_ID = "fabriciojm/hadt-models"
 
 app.state.model = None  # Initialize as None, load on first request
 
