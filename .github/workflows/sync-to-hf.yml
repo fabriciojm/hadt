@@ -65,8 +65,6 @@ jobs:
         
         
         # Sync Models
-        ls -lh ../hadt/models/
-        cat ../hadt/models/cnn_multi_model.h5
         rsync -av --delete --exclude='.git/' ../hadt/models/ ./
         
         # Add, commit, and push changes with LFS
