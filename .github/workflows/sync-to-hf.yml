@@ -57,12 +57,12 @@ jobs:
         git lfs install
         
         # Clone the Model Hub repository
-        git clone https://$HF_TOKEN@huggingface.co/fabriciojm/hadt-models model-repo
+        git clone https://user:${{secrets.HF_TOKEN}}@huggingface.co/fabriciojm/hadt-models model-repo
         cd model-repo
         
         # Configure LFS tracking for model files
-        git lfs track "*.h5"
-        git lfs track "*.pkl"
+        git lfs track "hadt/models/*.pkl"
+        git lfs track "hadt/models/*.h5"
         
         # Sync Models
         rsync -av --delete --exclude='.git/' ../hadt/models/ ./
@@ -72,5 +72,5 @@ jobs:
         git add .
         git commit -m "Sync Models from main repo" || echo "No changes to commit"
         git lfs push origin main --all
-        git push https://$HF_TOKEN@huggingface.co/fabriciojm/hadt-models main
+        git push https://user:${{secrets.HF_TOKEN}}@huggingface.co/fabriciojm/hadt-models main
 
