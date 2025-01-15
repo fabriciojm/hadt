@@ -2,7 +2,7 @@
 license: mit
 language: []
 pretty_name: Apple watch 30-secondECG Examples
-task_categories: [time-series-classification]
+task_categories: []
 tags: [ecg, heartbeat, medical-data, hadt]
 size_categories: <1K
 ---
