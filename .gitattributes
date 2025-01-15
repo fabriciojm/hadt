@@ -1,3 +1,4 @@
 hadt/models/*.pkl filter=lfs diff=lfs merge=lfs -text
 hadt/models/*.h5 filter=lfs diff=lfs merge=lfs -text
 ecg-examples/*.csv filter=lfs diff=lfs merge=lfs -text
+apple-ecg-examples/*.csv filter=lfs diff=lfs merge=lfs -text
