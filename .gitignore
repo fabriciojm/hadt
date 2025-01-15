@@ -180,3 +180,5 @@ config/
 # Allow .pkl and .h5 files in hadt/models/
 !hadt/models/*.pkl
 !hadt/models/*.h5
+# Used to push dataset to hf spaces
+!ecg-examples/*.csv

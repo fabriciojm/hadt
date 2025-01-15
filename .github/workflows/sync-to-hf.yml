@@ -7,7 +7,8 @@ on:
     paths:
       - "hadt/app/**"
       - "hadt/api/**"
-      - "hadt/models/**"
+      - "models/**"
+      - "ecg-examples/**"
   workflow_dispatch:
 
 jobs:
@@ -65,11 +66,27 @@ jobs:
         
         
         # Sync Models
-        rsync -av --delete --exclude='.git/' ../hadt/models/ ./
+        rsync -av --delete --exclude='.git/' ../models/ ./
         
         # Add, commit, and push changes with LFS
         git add .
         git commit -m "Sync Models from main repo" || echo "No changes to commit"
         git lfs push origin main --all
         git push https://user:${{secrets.HF_TOKEN}}@huggingface.co/fabriciojm/hadt-models main
+
+    - name: Sync ECG Examples Dataset to Hugging Face Dataset Hub
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: |
+        git lfs install
+        git lfs fetch origin
+        git lfs pull origin main
+        git clone https://user:${{secrets.HF_TOKEN}}@huggingface.co/datasets/fabriciojm/ecg-examples ecg-dataset-repo
+        cd ecg-dataset-repo
+        rsync -av --delete --exclude='.git/' ../ecg-examples/ ./
+        git add .
+        git commit -m "Sync ECG Examples dataset from main repo" || echo "No changes to commit"
+        git lfs push origin main --all
+        git push https://user:${{secrets.HF_TOKEN}}@huggingface.co/datasets/fabriciojm/ecg-examples main
+
 
