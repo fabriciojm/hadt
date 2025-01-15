@@ -89,4 +89,19 @@ jobs:
         git lfs push origin main --all
         git push https://user:${{secrets.HF_TOKEN}}@huggingface.co/datasets/fabriciojm/ecg-examples main
 
+    - name: Sync Apple ECG Examples Dataset to Hugging Face Dataset Hub
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: |
+        git lfs install
+        git lfs fetch origin
+        git lfs pull origin main
+        git clone https://user:${{secrets.HF_TOKEN}}@huggingface.co/datasets/fabriciojm/apple-ecg-examples apple-ecg-dataset-repo
+        cd apple-ecg-dataset-repo
+        rsync -av --delete --exclude='.git/' ../apple-ecg-examples/ ./
+        git add .
+        git commit -m "Sync Apple ECG Examples dataset from main repo" || echo "No changes to commit"
+        git lfs push origin main --all
+        git push https://user:${{secrets.HF_TOKEN}}@huggingface.co/datasets/fabriciojm/apple-ecg-examples main
+
 
