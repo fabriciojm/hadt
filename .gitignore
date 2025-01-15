@@ -182,3 +182,4 @@ config/
 !hadt/models/*.h5
 # Used to push dataset to hf spaces
 !ecg-examples/*.csv
+!apple-ecg-examples/*.csv
