@@ -63,7 +63,7 @@ async def predict(model_name: str, filepath_csv: UploadFile = File(...)):
 
     # Read the uploaded CSV file
     file_content = await filepath_csv.read()
-    X = pd.read_csv(StringIO(file_content.decode('utf-8')), header=None).T
+    X = pd.read_csv(StringIO(file_content.decode('utf-8')), header=None)
     y_pred = model.predict_with_pipeline(X)
     
     # Decode prediction using absolute path
