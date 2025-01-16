@@ -176,10 +176,9 @@ data/
 # Local config
 hadt/ml_logic/config/
 config/
-# hadt/models/*
-# Allow .pkl and .h5 files in hadt/models/
-!hadt/models/*.pkl
-!hadt/models/*.h5
+# Allow .pkl and .h5 files in models/
+!models/*.pkl
+!models/*.h5
 # Used to push dataset to hf spaces
 !ecg-examples/*.csv
 !apple-ecg-examples/*.csv
