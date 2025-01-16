@@ -2,3 +2,4 @@ altair<5
 matplotlib
 pandas
 requests
+streamlit==1.41.1
