@@ -173,6 +173,8 @@ data/
 # Mac OS
 .DS_Store
 
+# allow config files
+!config/*.json
 # Allow .pkl and .h5 files in models/
 !models/*.pkl
 !models/*.h5

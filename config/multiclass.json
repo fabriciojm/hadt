@@ -1,0 +1,8 @@
+{
+    "filename": "./data/MIT-BIH.csv",
+    "drop_classes": ["F"],
+    "output_dir": "./models",
+    "n_samples": -1,
+    "binary": false,
+    "scaler_name": "MeanVariance"
+}
