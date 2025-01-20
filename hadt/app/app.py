@@ -42,7 +42,7 @@ st.markdown("""Upload a CSV file with single heartbeat (csv with 180 points) or 
 """)
 
 # Option to upload or load a file
-option = st.radio("Choose input method", ("Load example file", "Upload CSV file"))
+option = st.radio("Choose input method", ("Load example file", "Upload CSV file", "Upload Apple Watch ECG CSV file"))
 
 if option == "Load example file":
     # Load example files from Hugging Face dataset
@@ -58,9 +58,20 @@ if option == "Load example file":
     df = pd.read_csv(uploaded_file)
     # st.write("Loaded Data:", df)
 
-else:
+elif option == "Upload CSV file":
     # File uploader
     uploaded_file = st.file_uploader("Upload a CSV file", type="csv")
+    st.write("The CSV file should have 180 points per row, following the format in [the examples](https://huggingface.co/datasets/fabriciojm/ecg-examples)")
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+        # st.write("Uploaded Data:", df)
+
+elif option == "Upload Apple Watch ECG CSV file":
+    # File uploader
+    st.write("DISCLAIMER: this is an experimental feature, and the results may not be accurate. This should not be used as professional medical advice.")
+    uploaded_file = st.file_uploader("Upload a CSV file", type="csv")
+    st.write("The Apple Watch CSV file should have the same format as [the examples](https://huggingface.co/datasets/fabriciojm/apple-ecg-examples)")
+
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
         # st.write("Uploaded Data:", df)
@@ -86,6 +97,8 @@ if 'df' in locals():
 
         if response.status_code == 200:
             prediction = response.json()["prediction"]
-            st.write(f"Prediction using {model_name}: {beat_labels[prediction]} (class {prediction}) heartbeat")
+            st.write(f"Prediction using {model_name}:")
+            for i, p in enumerate(prediction):
+                st.write(f"Beat {i+1}: {beat_labels[p]} (class {p})") #  {beat_labels[prediction]} (class {prediction}) heartbeat
         else:
             st.error(f"Error: {response.json().get('detail', 'Unknown error')}")
