@@ -173,9 +173,6 @@ data/
 # Mac OS
 .DS_Store
 
-# Local config
-hadt/ml_logic/config/
-config/
 # Allow .pkl and .h5 files in models/
 !models/*.pkl
 !models/*.h5
