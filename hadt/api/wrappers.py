@@ -1,5 +1,5 @@
 import numpy as np
-from preproc import preproc_single
+from preproc import preproc
 
 class BaseModelWrapper:
     def __init__(self, model):
@@ -7,7 +7,7 @@ class BaseModelWrapper:
 
     def preprocess(self, data):
         """Default preprocessing (can be overridden)."""
-        return preproc_single(data)
+        return preproc(data)
 
     def predict(self, data):
         """Call the model's prediction."""
@@ -28,7 +28,7 @@ class BaseModelWrapper:
 class LSTMWrapper(BaseModelWrapper):
     def preprocess(self, data):
         # LSTM requires additional dimension expansion
-        data = preproc_single(data)
+        data = preproc(data)
         return np.expand_dims(data, axis=1)  # Add time-step dimension
 
     def predict(self, data):
