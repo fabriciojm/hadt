@@ -2,7 +2,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from huggingface_hub import hf_hub_download
 
 from utils import load_model_by_type, encoder_from_model
-from preproc import label_decoding
+from preproc import label_decoding, apple_csv_to_data, apple_extract_beats
 import pandas as pd
 from io import StringIO
 from pathlib import Path
@@ -74,6 +74,22 @@ async def predict(model_name: str, filepath_csv: UploadFile = File(...)):
     
     return {"prediction": y_pred}
 
+@app.post("/predict_multibeats")
+async def predict_multibeats(model_name: str, filepath_csv: UploadFile = File(...)):
+    model = app.state.model = model_loader(model_name)
+
+    # Read the uploaded CSV file
+    file_content = await filepath_csv.read()
+    # X = pd.read_csv(StringIO(file_content.decode('utf-8')))
+    X, sample_rate = apple_csv_to_data(file_content)
+    beats = apple_extract_beats(X, sample_rate)
+    y_pred = model.predict_with_pipeline(beats)
+    
+    # Decode prediction using absolute path
+    
+    y_pred = label_decoding(values=y_pred, path=encoder_cache[model_name])
+    
+    return {"prediction": y_pred}
 
 # @app.post("/predict_multibeats")
 # async def predict_multibeats(model_name: str, filepath_csv: UploadFile = File(...)):
