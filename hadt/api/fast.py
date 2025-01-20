@@ -37,8 +37,7 @@ app.state.model = None  # Initialize as None, load on first request
 def root():
     return dict(greeting="Hello")
 
-@app.post("/predict")
-async def predict(model_name: str, filepath_csv: UploadFile = File(...)):
+def model_loader(model_name):
     # Load model if not already loaded
     model_path = MODEL_DIR / f"{model_name}"
     encoder_name = encoder_from_model(model_name)
@@ -46,20 +45,23 @@ async def predict(model_name: str, filepath_csv: UploadFile = File(...)):
 
     # if model in model_path, load it, otherwise download it from HF
     if model_name not in model_cache:
-        # print("model_name", model_name)
-        # print("model_path", model_path)
         try:
             if not model_path.exists():
                 # Convert downloaded paths to Path objects
                 model_path = Path(hf_hub_download(repo_id=HF_REPO_ID, filename=f"{model_name}", cache_dir=CACHE_DIR))
                 encoder_path = Path(hf_hub_download(repo_id=HF_REPO_ID, filename=f"{encoder_name}", cache_dir=CACHE_DIR))
-            # print("model_path", model_path)
             model_cache[model_name] = load_model_by_type(model_path)  # Ensure string path for loading
             encoder_cache[model_name] = encoder_path
         except Exception as e:
             print(f"Error loading model: {str(e)}")  # Add debug print
             raise HTTPException(status_code=404, detail=f"Model {model_name} not found: {str(e)}")
-    model = app.state.model = model_cache[model_name]
+    return model_cache[model_name]
+
+
+@app.post("/predict")
+async def predict(model_name: str, filepath_csv: UploadFile = File(...)):
+    
+    model = app.state.model = model_loader(model_name)
 
     # Read the uploaded CSV file
     file_content = await filepath_csv.read()
@@ -68,6 +70,15 @@ async def predict(model_name: str, filepath_csv: UploadFile = File(...)):
     
     # Decode prediction using absolute path
     
-    y_pred = label_decoding(value=y_pred[0], path=encoder_cache[model_name])
+    y_pred = label_decoding(values=y_pred, path=encoder_cache[model_name])
     
     return {"prediction": y_pred}
+
+
+# @app.post("/predict_multibeats")
+# async def predict_multibeats(model_name: str, filepath_csv: UploadFile = File(...)):
+#     # Read the uploaded CSV file
+#     file_content = await filepath_csv.read()
+#     X = pd.read_csv(StringIO(file_content.decode('utf-8')))
+#     y_pred = model.predict_with_pipeline(X)
+#     return {"prediction": y_pred}
