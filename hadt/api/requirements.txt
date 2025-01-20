@@ -9,3 +9,4 @@ scipy
 tslearn
 tensorflow
 python-multipart
+wfdb
