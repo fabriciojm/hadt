@@ -43,9 +43,9 @@ pip install .
 ## Usage
 
 ```bash
-python hadt/ml_logic/[binary/multiclass]/[MODEL_NAME].py --config config/[binary/multiclass].json
+python hadt/ml_logic/[binary/multiclass]/[MODEL_NAME_PY] --config config/[binary/multiclass].json
 ```
-Where `[MODEL_NAME]` is the name of the model to be used, e.g. `lstm_multi_model.h5` and selecting one of the `[binary/multiclass]` options according to the classification task.
+Where `[MODEL_NAME]` is the name of the model to be used, e.g. `lstm_multi.py` and selecting one of the `[binary/multiclass]` options according to the classification task.
 
 
 ## Acknowledgements
