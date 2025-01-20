@@ -1,9 +1,11 @@
 from tslearn.utils import to_time_series_dataset
 from tslearn.preprocessing import TimeSeriesScalerMeanVariance
 import pickle
-from wfdb import rdrecord, rdann, processing
+from wfdb import processing
 from sklearn import preprocessing
 from scipy.signal import resample
+from io import StringIO
+
 
 import numpy as np
 import pandas as pd
@@ -20,19 +22,19 @@ def preproc(X):
     X = scaler.fit_transform(X)
     return X.reshape(in_shape)
 
-def apple_csv_to_data(filepath_csv):
+def apple_csv_to_data(file_content):
     # extract sampling rate 
-    with open(filepath_csv, 'r') as file:
-        for il,line in enumerate(file):
-            if line.startswith("Sample Rate"):
-                # Extract the sample rate
-                sample_rate = int(line.split(",")[1].split()[0])  # Split and get the numerical part
-                print(f"Sample Rate: {sample_rate}")
-                break
-            if il > 30:
-                print("Could not find sample rate in first 30 lines")
-                return None, None  
-    X = pd.read_csv(filepath_csv, skiprows=14, header=None)
+
+    for il,line in enumerate(file_content.decode('utf-8').splitlines()):
+        if line.startswith("Sample Rate"):
+            # Extract the sample rate
+            sample_rate = int(line.split(",")[1].split()[0])  # Split and get the numerical part
+            print(f"Sample Rate: {sample_rate}")
+            break
+        if il > 30:
+            print("Could not find sample rate in first 30 lines")
+            return None, None  
+    X = pd.read_csv(StringIO(file_content.decode('utf-8')), skiprows=14, header=None)
     return X, sample_rate
 
 def apple_trim_join(X, sample_rate=512, ns=2):
